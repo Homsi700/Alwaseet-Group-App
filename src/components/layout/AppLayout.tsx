@@ -1,14 +1,21 @@
+"use client"; // AppLayout needs to be client component to use hooks like usePathname
+
 import type { ReactNode } from 'react';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { SidebarNav } from "./SidebarNav";
 import { Toaster } from "@/components/ui/toaster";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"; // Assuming breadcrumb exists or is simple
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { navItems } from './nav-items';
+import { ThemeToggle } from './ThemeToggle';
+import { LanguageToggle } from './LanguageToggle';
 
-// A simple Breadcrumb component for placeholder.
-// In a real app, you might use a library or a more complex custom component.
-const AppBreadcrumb = ({ pageTitle }: { pageTitle?: string }) => {
-  // This is a very basic breadcrumb. Real implementation would involve route parsing.
+const AppBreadcrumb = () => {
+  const pathname = usePathname();
+  const currentNavItem = navItems.find(item => item.href === pathname || (item.href !== '/' && pathname.startsWith(item.href)));
+  const pageTitle = currentNavItem?.title;
+
   return (
     <Breadcrumb className="hidden md:flex">
       <BreadcrumbList>
@@ -17,7 +24,7 @@ const AppBreadcrumb = ({ pageTitle }: { pageTitle?: string }) => {
             <Link href="/">Dashboard</Link>
           </BreadcrumbLink>
         </BreadcrumbItem>
-        {pageTitle && (
+        {pageTitle && pageTitle !== 'Dashboard' && (
           <>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
@@ -33,18 +40,21 @@ const AppBreadcrumb = ({ pageTitle }: { pageTitle?: string }) => {
 
 interface AppLayoutProps {
   children: ReactNode;
-  pageTitle?: string; // Optional: to pass current page title for breadcrumbs or header
 }
 
-export function AppLayout({ children, pageTitle }: AppLayoutProps) {
+export function AppLayout({ children }: AppLayoutProps) {
   return (
     <SidebarProvider defaultOpen={true}>
       <SidebarNav />
       <SidebarInset className="flex flex-col bg-background">
         <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 py-4">
           <SidebarTrigger className="sm:hidden text-foreground" />
-          <AppBreadcrumb pageTitle={pageTitle} />
-          {/* Future additions: Search bar, user menu dropdown */}
+          <AppBreadcrumb />
+          <div className="ml-auto flex items-center gap-2">
+            <LanguageToggle />
+            <ThemeToggle />
+            {/* Future additions: User menu dropdown */}
+          </div>
         </header>
         <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-auto">
           <div className="max-w-full mx-auto">
