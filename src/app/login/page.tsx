@@ -1,9 +1,9 @@
-<<<<<<< HEAD
+
 "use client";
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation"; // For future redirection
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -19,38 +19,21 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { AppLogoIcon } from "@/components/layout/nav-items"; // Assuming AppLogoIcon is exported
+import { AppLogoIcon } from "@/components/layout/nav-items";
 import { Mail, Lock } from "lucide-react";
+import { useAuth } from '@/providers/AuthProvider';
 
 const loginFormSchema = z.object({
   username: z.string().min(1, { message: "اسم المستخدم مطلوب" }),
-  // username: z.string().email({ message: "البريد الإلكتروني غير صالح" }), // if using email
   password: z.string().min(6, { message: "كلمة المرور يجب أن لا تقل عن 6 أحرف" }),
 });
 
 type LoginFormValues = z.infer<typeof loginFormSchema>;
-=======
-'use client';
-
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/providers/AuthProvider';
-<<<<<<< HEAD
-import Image from 'next/image';
->>>>>>> 3d88a798466ad1d2ce8a70dd09c736b3c7330b1d
-=======
-import { motion } from 'framer-motion';
-import { UserCircleIcon, LockClosedIcon } from '@heroicons/react/24/outline';
->>>>>>> b68cfe9f4ea6c3e9a7b942ed86f3db084d358b89
 
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
-<<<<<<< HEAD
+  const { login } = useAuth();
   const [isLoading, setIsLoading] = React.useState(false);
 
   const form = useForm<LoginFormValues>({
@@ -63,39 +46,23 @@ export default function LoginPage() {
 
   async function onSubmit(data: LoginFormValues) {
     setIsLoading(true);
-    // console.log("Login data:", data);
-=======
-  const { login } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    username: '',
-    password: ''
-  });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
->>>>>>> 3d88a798466ad1d2ce8a70dd09c736b3c7330b1d
-
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-<<<<<<< HEAD
         body: JSON.stringify(data),
       });
 
       const result = await response.json();
 
-      if (response.ok) {
+      if (response.ok && result.token && result.user) {
+        login(result.token, result.user);
         toast({
           title: "تم تسجيل الدخول بنجاح",
-          description: "مرحباً بعودتك!",
+          description: `مرحباً ${result.user.username}!`,
         });
-        // TODO: Store the token (e.g., in localStorage or context)
-        // Example: localStorage.setItem('authToken', result.token);
         router.push("/"); // Redirect to dashboard or intended page
       } else {
         toast({
@@ -104,40 +71,15 @@ export default function LoginPage() {
           variant: "destructive",
         });
       }
-    } catch (error) {
-      toast({
-        title: "خطأ في الشبكة",
-        description: "تعذر الاتصال بالخادم. الرجاء المحاولة مرة أخرى.",
-        variant: "destructive",
-=======
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'خطأ في تسجيل الدخول');
-      }
-      
-      login(data.token, data.user);
-
-      toast({
-        title: "تم تسجيل الدخول بنجاح",
-        description: `مرحباً ${data.user.username}`,
-      });
-
-      router.push('/');
     } catch (error: any) {
       toast({
+        title: "خطأ في الاتصال",
+        description: error.message || "تعذر الاتصال بالخادم. الرجاء المحاولة مرة أخرى.",
         variant: "destructive",
-        title: "خطأ",
-        description: error.message,
->>>>>>> 3d88a798466ad1d2ce8a70dd09c736b3c7330b1d
       });
     } finally {
       setIsLoading(false);
     }
-<<<<<<< HEAD
   }
 
   return (
@@ -157,7 +99,7 @@ export default function LoginPage() {
             <div className="space-y-2">
               <Label htmlFor="username">اسم المستخدم</Label>
               <div className="relative">
-                <Mail className="absolute left-3 rtl:right-3 rtl:left-auto top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Mail className="absolute left-3 rtl:right-3 rtl:left-auto top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground icon-directional" />
                 <Input
                   id="username"
                   placeholder="اسم المستخدم الخاص بك"
@@ -182,7 +124,7 @@ export default function LoginPage() {
                 </Link>
               </div>
               <div className="relative">
-                <Lock className="absolute left-3 rtl:right-3 rtl:left-auto top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Lock className="absolute left-3 rtl:right-3 rtl:left-auto top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground icon-directional" />
                 <Input
                   id="password"
                   type="password"
@@ -209,118 +151,7 @@ export default function LoginPage() {
             </Link>
           </p>
         </CardFooter>
-=======
-  };
-  
-  return (
-    <div id="mainContainer" className="min-h-screen relative overflow-hidden">
-      {/* النجوم المتحركة */}
-      <div className="starsec"></div>
-      <div className="starthird"></div>
-      <div className="starfourth"></div>
-      <div className="starfifth"></div>
-      
-      <motion.div
-        initial={{ opacity: 0, scale: 0 }}
-        animate={{ opacity: 0.1, scale: 1 }}
-        transition={{ duration: 1, delay: 0.2 }}
-        className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-indigo-400 dark:bg-indigo-600 blur-3xl"
-      />
-      
-      <div className="flex items-center justify-center min-h-screen p-4">
-        <Card className="w-full max-w-md wow-bg border-0">
-          <div className="p-6">
-            <h3 className="text-2xl font-bold text-center mb-2 colorboard">تسجيل الدخول</h3>
-            <p className="text-center text-gray-500 mb-6">الدخول إلى حسابك</p>
-
-            <div className="p-6">
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="relative">
-                  <UserCircleIcon className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
-                  <Input
-                    id="username"
-                    placeholder="اسم المستخدم"
-                    className="pr-10 text-right"
-                    value={formData.username}
-                    onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
-                    required
-                    disabled={isLoading}
-                  />
-                </div>
-
-                <div className="relative">
-                  <LockClosedIcon className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="كلمة المرور"
-                    className="pr-10 text-right"
-                    value={formData.password}
-                    onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                    required
-                    disabled={isLoading}
-                  />
-                </div>
-
-                <Button
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 shadow-md hover:shadow-lg"
-                  disabled={isLoading}
-                  size="lg"
-                >
-                  {isLoading ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'}
-                </Button>
-              </form>
-
-              <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-6">
-                نظام إدارة الشركات المتكامل
-              </p>
-            </div>
-          </div>
-<<<<<<< HEAD
-          <CardTitle className="text-2xl">تسجيل الدخول</CardTitle>
-          <CardDescription>
-            قم بتسجيل الدخول للوصول إلى لوحة التحكم
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Input
-                id="username"
-                placeholder="اسم المستخدم"
-                value={formData.username}
-                onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
-                required
-                disabled={isLoading}
-              />
-            </div>
-            <div className="space-y-2">
-              <Input
-                id="password"
-                type="password"
-                placeholder="كلمة المرور"
-                value={formData.password}
-                onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                required
-                disabled={isLoading}
-              />
-            </div>
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading}
-            >
-              {isLoading ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'}
-            </Button>
-          </form>
-        </CardContent>
->>>>>>> 3d88a798466ad1d2ce8a70dd09c736b3c7330b1d
       </Card>
-=======
-        </Card>
-      </div>
->>>>>>> b68cfe9f4ea6c3e9a7b942ed86f3db084d358b89
     </div>
   );
 }
