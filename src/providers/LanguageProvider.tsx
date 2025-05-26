@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
@@ -15,14 +16,16 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>('en');
-  const [direction, setDirection] = useState<Direction>('ltr');
+  const [locale, setLocaleState] = useState<Locale>('ar'); // Default to Arabic
+  const [direction, setDirection] = useState<Direction>('rtl'); // Default to RTL
 
   useEffect(() => {
-    // You could load preference from localStorage here
-    const initialLang = (localStorage.getItem('alwasit-lang') as Locale) || 'en';
-    setLocaleState(initialLang);
-    if (initialLang === 'ar') {
+    const storedLang = localStorage.getItem('alwasit-lang') as Locale | null;
+    // If 'en' is stored, use it. Otherwise, default to 'ar'.
+    const currentLang = storedLang === 'en' ? 'en' : 'ar'; 
+    
+    setLocaleState(currentLang);
+    if (currentLang === 'ar') {
       setDirection('rtl');
       document.documentElement.lang = 'ar';
       document.documentElement.dir = 'rtl';

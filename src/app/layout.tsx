@@ -25,9 +25,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    // Initial lang and dir will be updated by LanguageProvider effect on client side.
-    // For true SSR lang/dir, a cookie-based approach read by the server is needed.
-    <html lang="en" dir="ltr" suppressHydrationWarning>
+    // Set Arabic as the default language and direction for initial server render
+    <html lang="ar" dir="rtl" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
         <AppProviders>
           <AppLayout>
