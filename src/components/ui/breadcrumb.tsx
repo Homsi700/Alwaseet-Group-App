@@ -85,7 +85,7 @@ const BreadcrumbSeparator = React.forwardRef<
     className={cn("[&>svg]:size-3.5", className)}
     {...props}
   >
-    {children ?? <ChevronRight />}
+    {children ?? <ChevronRight className="icon-directional" />}
   </li>
 ))
 BreadcrumbSeparator.displayName = "BreadcrumbSeparator"

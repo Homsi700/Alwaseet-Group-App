@@ -101,4 +101,7 @@
   body {
     @apply bg-background text-foreground;
   }
+  [dir="rtl"] .icon-directional {
+    transform: scaleX(-1);
+  }
 }

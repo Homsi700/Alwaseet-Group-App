@@ -36,7 +36,7 @@ export function IconCard({ title, description, icon: Icon, href, className }: Ic
           <div className="p-5 pt-2 mt-auto">
              <Button variant="outline" className="w-full group/button border-primary/30 text-primary hover:bg-primary/5 hover:text-primary hover:border-primary focus-visible:ring-primary">
               Go to {title}
-              <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/button:translate-x-1" />
+              <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/button:translate-x-1 rtl:group-hover/button:-translate-x-1 icon-directional" />
             </Button>
           </div>
         </Card>
