@@ -1,9 +1,10 @@
 
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableCaption, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlusCircle, Search, Edit, Trash2, Loader2 } from "lucide-react";
@@ -12,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import type { Product, Category } from '@/types'; // Ensure Category is imported if used
+import type { Product, Category } from '@/types';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -22,7 +23,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 const fetchProducts = async (searchTerm: string = ""): Promise<Product[]> => {
   const response = await fetch(`/api/products?searchTerm=${encodeURIComponent(searchTerm)}`);
   if (!response.ok) {
-    throw new Error('فشل في جلب المنتجات');
+    const errorData = await response.json().catch(() => ({ message: 'فشل في جلب المنتجات' }));
+    throw new Error(errorData.message || 'فشل في جلب المنتجات');
   }
   return response.json();
 };
@@ -65,17 +67,19 @@ const deleteProduct = async (productId: number): Promise<{ message: string }> =>
 };
 
 // Mock categories for now, will be fetched from API later
-const mockCategories: Category[] = [
-  { categoryId: 1, id: 'cat1', name: 'فواكه' },
-  { categoryId: 2, id: 'cat2', name: 'مخبوزات' },
-  { categoryId: 3, id: 'cat3', name: 'ألبان' },
-  { categoryId: 4, id: 'cat4', name: 'خضروات' },
-];
+// Actual categories will be fetched via API by React Query
+const fetchCategories = async (): Promise<Category[]> => {
+    const response = await fetch('/api/categories');
+    if(!response.ok) {
+        throw new Error('فشل في جلب الفئات');
+    }
+    return response.json();
+}
 
 
 // Form component for Add/Edit Product
-const ProductFormFields = ({ product, setProduct, categories }: { product: Partial<Product>, setProduct: (name: keyof Product, value: any) => void, categories: Category[] }) => (
-  <div className="grid gap-4 py-4">
+const ProductFormFields = ({ product, setProduct, categories, isLoadingCategories }: { product: Partial<Product>, setProduct: (name: keyof Product, value: any) => void, categories: Category[], isLoadingCategories: boolean }) => (
+  <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
     <div className="grid grid-cols-4 items-center gap-4">
       <Label htmlFor="name" className="text-left rtl:text-right">الاسم</Label>
       <Input id="name" value={product.name || ""} onChange={(e) => setProduct('name', e.target.value)} className="col-span-3 rounded-md" placeholder="اسم المنتج" />
@@ -83,6 +87,10 @@ const ProductFormFields = ({ product, setProduct, categories }: { product: Parti
     <div className="grid grid-cols-4 items-center gap-4">
       <Label htmlFor="barcode" className="text-left rtl:text-right">الباركود</Label>
       <Input id="barcode" value={product.barcode || ""} onChange={(e) => setProduct('barcode', e.target.value)} className="col-span-3 rounded-md" placeholder="باركود المنتج" />
+    </div>
+     <div className="grid grid-cols-4 items-start gap-4">
+      <Label htmlFor="description" className="text-left rtl:text-right mt-2">الوصف</Label>
+      <Textarea id="description" value={product.description || ""} onChange={(e) => setProduct('description', e.target.value)} className="col-span-3 rounded-md" placeholder="وصف مختصر للمنتج" />
     </div>
     <div className="grid grid-cols-4 items-center gap-4">
       <Label htmlFor="purchasePrice" className="text-left rtl:text-right">سعر الشراء</Label>
@@ -96,14 +104,23 @@ const ProductFormFields = ({ product, setProduct, categories }: { product: Parti
       <Label htmlFor="quantity" className="text-left rtl:text-right">الكمية</Label>
       <Input id="quantity" type="number" value={product.quantity || ""} onChange={(e) => setProduct('quantity', parseInt(e.target.value) || 0)} className="col-span-3 rounded-md" placeholder="0" />
     </div>
+    <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="unitOfMeasure" className="text-left rtl:text-right">وحدة القياس</Label>
+        <Input id="unitOfMeasure" value={product.unitOfMeasure || ""} onChange={(e) => setProduct('unitOfMeasure', e.target.value)} className="col-span-3 rounded-md" placeholder="مثال: كجم، قطعة، علبة" />
+    </div>
+    <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="minimumQuantity" className="text-left rtl:text-right">حد أدنى للكمية</Label>
+        <Input id="minimumQuantity" type="number" value={product.minimumQuantity || ""} onChange={(e) => setProduct('minimumQuantity', parseInt(e.target.value) || 0)} className="col-span-3 rounded-md" placeholder="0 (لتنبيهات المخزون)" />
+    </div>
      <div className="grid grid-cols-4 items-center gap-4">
       <Label htmlFor="category" className="text-left rtl:text-right">الفئة</Label>
       <Select
         value={product.categoryId?.toString() || ""}
         onValueChange={(value) => setProduct('categoryId', value ? parseInt(value) : undefined)}
+        disabled={isLoadingCategories}
       >
         <SelectTrigger className="col-span-3 rounded-md">
-          <SelectValue placeholder="اختر فئة" />
+          <SelectValue placeholder={isLoadingCategories ? "جاري تحميل الفئات..." : "اختر فئة"} />
         </SelectTrigger>
         <SelectContent>
           {categories.map(cat => (
@@ -120,9 +137,9 @@ const ProductFormFields = ({ product, setProduct, categories }: { product: Parti
       <Label htmlFor="supplier" className="text-left rtl:text-right">المورد</Label>
       <Input id="supplier" value={product.supplier || ""} onChange={(e) => setProduct('supplier', e.target.value)} className="col-span-3 rounded-md" placeholder="اسم المورد" />
     </div>
-     <div className="grid grid-cols-4 items-center gap-4">
-      <Label htmlFor="unitOfMeasure" className="text-left rtl:text-right">وحدة القياس</Label>
-      <Input id="unitOfMeasure" value={product.unitOfMeasure || ""} onChange={(e) => setProduct('unitOfMeasure', e.target.value)} className="col-span-3 rounded-md" placeholder="مثال: كجم، قطعة" />
+    <div className="grid grid-cols-4 items-center gap-4">
+      <Label htmlFor="imageUrl" className="text-left rtl:text-right">رابط الصورة</Label>
+      <Input id="imageUrl" value={product.imageUrl || ""} onChange={(e) => setProduct('imageUrl', e.target.value)} className="col-span-3 rounded-md" placeholder="https://example.com/image.png" />
     </div>
   </div>
 );
@@ -148,14 +165,13 @@ export default function ProductListPage() {
     ['products', debouncedSearchTerm], 
     () => fetchProducts(debouncedSearchTerm),
     {
-      keepPreviousData: true, // To avoid UI flickering during search
+      keepPreviousData: true, 
     }
   );
   
-  // TODO: Fetch categories from API
-  const { data: categories = mockCategories } = useQuery<Category[], Error>(
+  const { data: categories = [], isLoading: isLoadingCategories, isError: isErrorCategories, error: categoriesError } = useQuery<Category[], Error>(
     ['categories'],
-    async () => mockCategories, // Replace with actual API call: await fetch('/api/categories').then(res => res.json()),
+    fetchCategories,
     { staleTime: 5 * 60 * 1000 } // Cache categories for 5 minutes
   );
 
@@ -196,7 +212,7 @@ export default function ProductListPage() {
 
 
   const openModalForAdd = () => {
-    setCurrentProduct({});
+    setCurrentProduct({}); // Reset for new product
     setIsModalOpen(true);
   };
 
@@ -220,25 +236,40 @@ export default function ProductListPage() {
       toast({ title: "خطأ في التحقق", description: "اسم المنتج والباركود مطلوبان.", variant: "destructive" });
       return;
     }
+    // Basic validation for prices and quantity
+    if (currentProduct.purchasePrice === undefined || currentProduct.purchasePrice < 0) {
+        toast({ title: "خطأ في التحقق", description: "سعر الشراء يجب أن يكون رقمًا موجبًا.", variant: "destructive" });
+        return;
+    }
+    if (currentProduct.salePrice === undefined || currentProduct.salePrice < 0) {
+        toast({ title: "خطأ في التحقق", description: "سعر البيع يجب أن يكون رقمًا موجبًا.", variant: "destructive" });
+        return;
+    }
+    if (currentProduct.quantity === undefined || currentProduct.quantity < 0) {
+        toast({ title: "خطأ في التحقق", description: "الكمية يجب أن تكون رقمًا موجبًا.", variant: "destructive" });
+        return;
+    }
+
+
+    const productToSave: Omit<Product, 'id' | 'productId' | 'companyId' | 'isActive'> = {
+      name: currentProduct.name,
+      barcode: currentProduct.barcode,
+      description: currentProduct.description,
+      purchasePrice: currentProduct.purchasePrice ?? 0,
+      salePrice: currentProduct.salePrice ?? 0,
+      quantity: currentProduct.quantity ?? 0,
+      unitOfMeasure: currentProduct.unitOfMeasure,
+      minimumQuantity: currentProduct.minimumQuantity,
+      categoryId: currentProduct.categoryId,
+      expirationDate: currentProduct.expirationDate,
+      supplier: currentProduct.supplier,
+      imageUrl: currentProduct.imageUrl,
+    };
+
     if (currentProduct.productId) { // Editing
-      updateProductMutation.mutate(currentProduct as Product);
+      updateProductMutation.mutate({ ...productToSave, productId: currentProduct.productId } as Product);
     } else { // Adding
-      // Ensure all required fields for creation are present, matching Omit<Product, 'id' | 'productId'>
-      const productToCreate: Omit<Product, 'id' | 'productId' | 'companyId' | 'isActive'> = {
-        name: currentProduct.name,
-        barcode: currentProduct.barcode,
-        purchasePrice: currentProduct.purchasePrice ?? 0,
-        salePrice: currentProduct.salePrice ?? 0,
-        quantity: currentProduct.quantity ?? 0,
-        categoryId: currentProduct.categoryId,
-        expirationDate: currentProduct.expirationDate,
-        supplier: currentProduct.supplier,
-        description: currentProduct.description,
-        unitOfMeasure: currentProduct.unitOfMeasure,
-        minimumQuantity: currentProduct.minimumQuantity,
-        imageUrl: currentProduct.imageUrl,
-      };
-      addProductMutation.mutate(productToCreate);
+      addProductMutation.mutate(productToSave);
     }
   };
   
@@ -256,7 +287,12 @@ export default function ProductListPage() {
       <Card className="shadow-lg rounded-lg">
         <CardHeader>
           <CardTitle>جميع المنتجات</CardTitle>
-          <CardDescription>إدارة مخزونك وتفاصيل منتجاتك. {isLoadingProducts ? "جاري التحميل..." : `تم العثور على ${products.length} منتج(ات).`}</CardDescription>
+          <CardDescription>
+            إدارة مخزونك وتفاصيل منتجاتك. 
+            {isLoadingProducts && " جاري تحميل المنتجات..."}
+            {!isLoadingProducts && !isErrorProducts && ` تم العثور على ${products.length} منتج(ات).`}
+            {isErrorCategories && " خطأ في تحميل الفئات."}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="mb-4">
@@ -271,7 +307,7 @@ export default function ProductListPage() {
           </div>
           <div className="overflow-x-auto">
             <Table>
-              <TableCaption>قائمة بجميع منتجاتك.</TableCaption>
+              <TableCaption>قائمة بجميع منتجاتك المسجلة.</TableCaption>
               <TableHeader>
                 <TableRow>
                   <TableHead className="min-w-[150px]">الاسم</TableHead>
@@ -288,14 +324,14 @@ export default function ProductListPage() {
               <TableBody>
                 {isLoadingProducts && Array.from({ length: 5 }).map((_, index) => (
                   <TableRow key={`skeleton-${index}`}>
-                    <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-12" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-32 rounded" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-24 rounded" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-16 rounded" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-16 rounded" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-12 rounded" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-20 rounded" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-20 rounded" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-24 rounded" /></TableCell>
                     <TableCell className="text-center space-x-1 rtl:space-x-reverse">
                       <Skeleton className="h-8 w-8 rounded-md inline-block" />
                       <Skeleton className="h-8 w-8 rounded-md inline-block" />
@@ -305,14 +341,14 @@ export default function ProductListPage() {
                 {!isLoadingProducts && isErrorProducts && (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center text-destructive py-8">
-                      حدث خطأ أثناء جلب المنتجات: {productsError?.message}
+                      حدث خطأ أثناء جلب المنتجات: {productsError?.message || "يرجى المحاولة مرة أخرى."}
                     </TableCell>
                   </TableRow>
                 )}
                 {!isLoadingProducts && !isErrorProducts && products.length === 0 && (
                     <TableRow>
                         <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
-                            لم يتم العثور على منتجات تطابق معايير البحث الخاصة بك أو لا توجد منتجات حالياً.
+                            لم يتم العثور على منتجات. قم بإضافة منتج جديد للبدء.
                         </TableCell>
                     </TableRow>
                 )}
@@ -320,17 +356,17 @@ export default function ProductListPage() {
                   <TableRow key={product.id}>
                     <TableCell className="font-medium">{product.name}</TableCell>
                     <TableCell>{product.barcode}</TableCell>
-                    <TableCell className="text-left rtl:text-right">${product.purchasePrice.toFixed(2)}</TableCell>
-                    <TableCell className="text-left rtl:text-right">${product.salePrice.toFixed(2)}</TableCell>
-                    <TableCell className="text-left rtl:text-right">{product.quantity}</TableCell>
+                    <TableCell className="text-left rtl:text-right">${product.purchasePrice?.toFixed(2) ?? '0.00'}</TableCell>
+                    <TableCell className="text-left rtl:text-right">${product.salePrice?.toFixed(2) ?? '0.00'}</TableCell>
+                    <TableCell className="text-left rtl:text-right">{product.quantity ?? 0}</TableCell>
                     <TableCell>{categories.find(c => c.categoryId === product.categoryId)?.name || product.categoryName || "غير محدد"}</TableCell>
                     <TableCell>{product.expirationDate ? new Date(product.expirationDate).toLocaleDateString('ar-EG-u-nu-latn', { year: 'numeric', month: '2-digit', day: '2-digit'}) : "لا يوجد"}</TableCell>
                     <TableCell>{product.supplier || "غير محدد"}</TableCell>
                     <TableCell className="text-center space-x-1 rtl:space-x-reverse">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md" onClick={() => openModalForEdit(product)} disabled={deleteProductMutation.isLoading}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md" onClick={() => openModalForEdit(product)} disabled={deleteProductMutation.isLoading || isSaving}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/80 rounded-md" onClick={() => handleDeleteProduct(product.productId)} disabled={deleteProductMutation.isLoading || product.productId === undefined}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/80 rounded-md" onClick={() => handleDeleteProduct(product.productId)} disabled={deleteProductMutation.isLoading || product.productId === undefined || isSaving}>
                          {deleteProductMutation.isLoading && deleteProductMutation.variables === product.productId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                       </Button>
                     </TableCell>
@@ -350,7 +386,12 @@ export default function ProductListPage() {
               {currentProduct.productId ? "تحديث تفاصيل المنتج." : "املأ تفاصيل المنتج الجديد."}
             </DialogDescription>
           </DialogHeader>
-          <ProductFormFields product={currentProduct} setProduct={handleProductFormFieldChange} categories={categories} />
+          <ProductFormFields 
+            product={currentProduct} 
+            setProduct={handleProductFormFieldChange} 
+            categories={categories} 
+            isLoadingCategories={isLoadingCategories} 
+           />
           <DialogFooter>
             <DialogClose asChild>
               <Button variant="outline" className="rounded-md" disabled={isSaving}>إلغاء</Button>
@@ -365,3 +406,4 @@ export default function ProductListPage() {
     </div>
   );
 }
+

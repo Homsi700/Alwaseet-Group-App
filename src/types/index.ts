@@ -1,3 +1,4 @@
+
 // نوع البيانات للمستخدم
 export interface User {
     userId: number;
@@ -23,8 +24,9 @@ export interface Product {
     salePrice: number;
     quantity: number;
     unitOfMeasure?: string;
-    minimumQuantity?: number;
+    minimumQuantity?: number; // For low stock alerts
     expirationDate?: string;
+    supplier?: string; // Optional, could be linked to a supplier table later
     imageUrl?: string;
     companyId?: number; // Assuming products are company-specific
     isActive?: boolean;
@@ -91,3 +93,4 @@ export interface PaginatedResponse<T> {
   totalPages: number;
   currentPage: number;
 }
+
