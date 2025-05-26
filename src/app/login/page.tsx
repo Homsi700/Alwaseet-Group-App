@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/providers/AuthProvider';
-import Image from 'next/image';
+import { motion } from 'framer-motion';
+import { UserCircleIcon, LockClosedIcon } from '@heroicons/react/24/outline';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -36,7 +37,8 @@ export default function LoginPage() {
 
       if (!response.ok) {
         throw new Error(data.error || 'خطأ في تسجيل الدخول');
-      }      // استخدام مزود المصادقة لتسجيل الدخول
+      }
+      
       login(data.token, data.user);
 
       toast({
@@ -55,58 +57,74 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
-
+  
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-900 dark:to-gray-800">
-      <Card className="w-[400px]">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4">
-            <Image
-              src="/logo.png"
-              alt="Alwaseet Group"
-              width={120}
-              height={120}
-              className="mx-auto"
-            />
+    <div id="mainContainer" className="min-h-screen relative overflow-hidden">
+      {/* النجوم المتحركة */}
+      <div className="starsec"></div>
+      <div className="starthird"></div>
+      <div className="starfourth"></div>
+      <div className="starfifth"></div>
+      
+      <motion.div
+        initial={{ opacity: 0, scale: 0 }}
+        animate={{ opacity: 0.1, scale: 1 }}
+        transition={{ duration: 1, delay: 0.2 }}
+        className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-indigo-400 dark:bg-indigo-600 blur-3xl"
+      />
+      
+      <div className="flex items-center justify-center min-h-screen p-4">
+        <Card className="w-full max-w-md wow-bg border-0">
+          <div className="p-6">
+            <h3 className="text-2xl font-bold text-center mb-2 colorboard">تسجيل الدخول</h3>
+            <p className="text-center text-gray-500 mb-6">الدخول إلى حسابك</p>
+
+            <div className="p-6">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="relative">
+                  <UserCircleIcon className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+                  <Input
+                    id="username"
+                    placeholder="اسم المستخدم"
+                    className="pr-10 text-right"
+                    value={formData.username}
+                    onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+
+                <div className="relative">
+                  <LockClosedIcon className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="كلمة المرور"
+                    className="pr-10 text-right"
+                    value={formData.password}
+                    onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 shadow-md hover:shadow-lg"
+                  disabled={isLoading}
+                  size="lg"
+                >
+                  {isLoading ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'}
+                </Button>
+              </form>
+
+              <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-6">
+                نظام إدارة الشركات المتكامل
+              </p>
+            </div>
           </div>
-          <CardTitle className="text-2xl">تسجيل الدخول</CardTitle>
-          <CardDescription>
-            قم بتسجيل الدخول للوصول إلى لوحة التحكم
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Input
-                id="username"
-                placeholder="اسم المستخدم"
-                value={formData.username}
-                onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
-                required
-                disabled={isLoading}
-              />
-            </div>
-            <div className="space-y-2">
-              <Input
-                id="password"
-                type="password"
-                placeholder="كلمة المرور"
-                value={formData.password}
-                onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                required
-                disabled={isLoading}
-              />
-            </div>
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading}
-            >
-              {isLoading ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

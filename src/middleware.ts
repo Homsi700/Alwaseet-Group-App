@@ -3,11 +3,20 @@ import type { NextRequest } from 'next/server';
 import { verify } from 'jsonwebtoken';
 
 // المسارات التي لا تحتاج إلى مصادقة
-const publicPaths = ['/api/auth/login', '/api/auth/register', '/login'];
+const publicPaths = ['/api/auth/login', '/login'];
 
-// التحقق من الصفحات التي تحتاج إلى مصادقة
-const isPageRequest = !request.nextUrl.pathname.startsWith('/api/');
-const isPublicPage = publicPaths.some(path => request.nextUrl.pathname.startsWith(path));
+// المسارات التي تتطلب مصادقة
+const protectedPaths = [
+  '/dashboard',
+  '/products',
+  '/customers',
+  '/sales',
+  '/purchases',
+  '/inventory',
+  '/finance',
+  '/reports',
+  '/settings'
+];
 
 export async function middleware(request: NextRequest) {
     const path = request.nextUrl.pathname;    // التحقق إذا كان المسار عام
