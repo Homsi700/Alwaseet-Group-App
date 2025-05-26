@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
-import { AppLayout } from '@/components/layout/AppLayout';
+// AppLayout is removed from here
 import { AppProviders } from '@/providers/AppProviders';
 
 const geistSans = Geist({
@@ -29,9 +29,8 @@ export default function RootLayout({
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
         <AppProviders>
-          <AppLayout>
-            {children}
-          </AppLayout>
+          {/* AppLayout is no longer here, it will be in (app)/layout.tsx */}
+          {children}
         </AppProviders>
       </body>
     </html>
