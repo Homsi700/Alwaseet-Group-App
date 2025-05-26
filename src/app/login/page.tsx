@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 "use client";
 
 import * as React from "react";
@@ -28,10 +29,23 @@ const loginFormSchema = z.object({
 });
 
 type LoginFormValues = z.infer<typeof loginFormSchema>;
+=======
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/providers/AuthProvider';
+import Image from 'next/image';
+>>>>>>> 3d88a798466ad1d2ce8a70dd09c736b3c7330b1d
 
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+<<<<<<< HEAD
   const [isLoading, setIsLoading] = React.useState(false);
 
   const form = useForm<LoginFormValues>({
@@ -45,6 +59,18 @@ export default function LoginPage() {
   async function onSubmit(data: LoginFormValues) {
     setIsLoading(true);
     // console.log("Login data:", data);
+=======
+  const { login } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    username: '',
+    password: ''
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+>>>>>>> 3d88a798466ad1d2ce8a70dd09c736b3c7330b1d
 
     try {
       const response = await fetch('/api/auth/login', {
@@ -52,6 +78,7 @@ export default function LoginPage() {
         headers: {
           'Content-Type': 'application/json',
         },
+<<<<<<< HEAD
         body: JSON.stringify(data),
       });
 
@@ -77,10 +104,34 @@ export default function LoginPage() {
         title: "خطأ في الشبكة",
         description: "تعذر الاتصال بالخادم. الرجاء المحاولة مرة أخرى.",
         variant: "destructive",
+=======
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'خطأ في تسجيل الدخول');
+      }      // استخدام مزود المصادقة لتسجيل الدخول
+      login(data.token, data.user);
+
+      toast({
+        title: "تم تسجيل الدخول بنجاح",
+        description: `مرحباً ${data.user.username}`,
+      });
+
+      router.push('/');
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "خطأ",
+        description: error.message,
+>>>>>>> 3d88a798466ad1d2ce8a70dd09c736b3c7330b1d
       });
     } finally {
       setIsLoading(false);
     }
+<<<<<<< HEAD
   }
 
   return (
@@ -152,6 +203,60 @@ export default function LoginPage() {
             </Link>
           </p>
         </CardFooter>
+=======
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-900 dark:to-gray-800">
+      <Card className="w-[400px]">
+        <CardHeader className="text-center">
+          <div className="mx-auto mb-4">
+            <Image
+              src="/logo.png"
+              alt="Alwaseet Group"
+              width={120}
+              height={120}
+              className="mx-auto"
+            />
+          </div>
+          <CardTitle className="text-2xl">تسجيل الدخول</CardTitle>
+          <CardDescription>
+            قم بتسجيل الدخول للوصول إلى لوحة التحكم
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Input
+                id="username"
+                placeholder="اسم المستخدم"
+                value={formData.username}
+                onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+                required
+                disabled={isLoading}
+              />
+            </div>
+            <div className="space-y-2">
+              <Input
+                id="password"
+                type="password"
+                placeholder="كلمة المرور"
+                value={formData.password}
+                onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                required
+                disabled={isLoading}
+              />
+            </div>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading}
+            >
+              {isLoading ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'}
+            </Button>
+          </form>
+        </CardContent>
+>>>>>>> 3d88a798466ad1d2ce8a70dd09c736b3c7330b1d
       </Card>
     </div>
   );
