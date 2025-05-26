@@ -12,20 +12,33 @@ export interface User {
 
 // نوع البيانات للمنتج
 export interface Product {
-    productId: number;
+    productId: number; // Kept as productId for consistency with potential DB
+    id: string; // Used for client-side keying and optimistic updates if needed
     name: string;
     barcode: string;
-    description: string;
-    categoryId: number;
+    description?: string;
+    categoryId?: number; // Link to Category
+    categoryName?: string; // Denormalized for display
     purchasePrice: number;
     salePrice: number;
     quantity: number;
-    unitOfMeasure: string;
-    minimumQuantity: number;
-    imageUrl: string;
-    companyId: number;
-    isActive: boolean;
+    unitOfMeasure?: string;
+    minimumQuantity?: number;
+    expirationDate?: string;
+    imageUrl?: string;
+    companyId?: number; // Assuming products are company-specific
+    isActive?: boolean;
 }
+
+// نوع البيانات للفئة
+export interface Category {
+    categoryId: number;
+    id: string; // Client-side key
+    name: string;
+    description?: string;
+    companyId?: number;
+}
+
 
 // نوع البيانات للفاتورة
 export interface Invoice {
@@ -69,4 +82,12 @@ export interface Account {
     balance: number;
     companyId: number;
     isActive: boolean;
+}
+
+// For API responses, especially for paginated lists
+export interface PaginatedResponse<T> {
+  items: T[];
+  totalItems: number;
+  totalPages: number;
+  currentPage: number;
 }
