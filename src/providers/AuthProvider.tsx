@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface User {
@@ -15,6 +15,7 @@ interface AuthContextType {
   login: (token: string, user: User) => void;
   logout: () => void;
   isLoading: boolean;
+  verifyToken: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -22,6 +23,7 @@ const AuthContext = createContext<AuthContextType>({
   login: () => {},
   logout: () => {},
   isLoading: true,
+  verifyToken: async () => false,
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -29,15 +31,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    // التحقق من وجود معلومات المستخدم في localStorage عند تحميل التطبيق
-    const storedUser = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
+  const verifyToken = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return false;
 
-    if (storedUser && token) {
-      setUser(JSON.parse(storedUser));
+      const response = await fetch('/api/auth/verify', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      return response.ok;
+    } catch (error) {
+      console.error('Token verification failed:', error);
+      return false;
     }
-    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    const initAuth = async () => {
+      const storedUser = localStorage.getItem('user');
+      const token = localStorage.getItem('token');
+
+      if (storedUser && token) {
+        const isValid = await verifyToken();
+        if (isValid) {
+          setUser(JSON.parse(storedUser));
+        } else {
+          logout();
+        }
+      }
+      setIsLoading(false);
+    };
+
+    initAuth();
   }, []);
 
   const login = (token: string, user: User) => {
@@ -54,7 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, isLoading, verifyToken }}>
       {children}
     </AuthContext.Provider>
   );

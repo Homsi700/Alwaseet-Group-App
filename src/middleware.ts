@@ -43,21 +43,10 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
     // إذا كان طلب API، أرجع خطأ 401
-    if (!isPageRequest) {
-      return new NextResponse(
-        JSON.stringify({ error: 'Authentication required' }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-    // If it's a page request but no token and not a public path,
-    // and we are not already on login, redirect to login.
-    // This handles cases where a protected page is accessed directly.
-    if (isPageRequest && path !== '/login' && !publicPaths.includes(path)) {
-        return NextResponse.redirect(new URL('/login', request.url));
-    }
-    // If we are here, it means it's a page request, no token, and it's a public path (already handled) or login page.
-    return NextResponse.next();
-
+    return new NextResponse(
+      JSON.stringify({ error: 'Authentication required' }),
+      { status: 401, headers: { 'Content-Type': 'application/json' } }
+    );
   }
 
   try {
@@ -107,8 +96,8 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - Any public assets in the public folder (e.g., /logo.png)
+     * - public (public files)
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|public).*)',
   ],
 };

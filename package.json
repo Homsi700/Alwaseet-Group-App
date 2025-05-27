@@ -1,15 +1,16 @@
 {
   "name": "nextn",
   "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev --turbopack -p 9002",
+  "type": "module",
+  "private": true,  "scripts": {
+    "dev": "next dev -p 9002",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test-db-connection": "cross-env NODE_OPTIONS=\"--loader ts-node/esm\" node src/scripts/test-db-connection.ts"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.8.0",
@@ -62,6 +63,7 @@
     "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7",
     "tedious": "^18.6.1",
+    "winston": "^3.17.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {
@@ -72,10 +74,29 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@types/tedious": "^4.0.14",
+    "cross-env": "^7.0.3",
     "dotenv": "^16.5.0",
     "genkit-cli": "^1.8.0",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5"
-  }
+    "typescript": "^5.8.3",
+    "ts-node": "^10.9.1",
+    "esbuild": "^0.20.2"
+  },
+  "description": "This is a NextJS starter in Firebase Studio.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Homsi700/Alwaseet-Group-App.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Homsi700/Alwaseet-Group-App/issues"
+  },
+  "homepage": "https://github.com/Homsi700/Alwaseet-Group-App#readme"
 }

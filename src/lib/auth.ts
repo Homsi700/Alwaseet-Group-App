@@ -49,6 +49,15 @@ export function checkPermission(user: any, requiredRole: string | string[]) {
 }
 
 // إنشاء رد خطأ
+export function createErrorResponse(message: string, status: number = 401) {
+    return new NextResponse(
+        JSON.stringify({ error: message }),
+        {
+            status,
+            headers: { 'Content-Type': 'application/json' }
+        }
+    );
+}
 export function createErrorResponse(message: string, status: number = 400) {
     return new NextResponse(
         JSON.stringify({ error: message }),
