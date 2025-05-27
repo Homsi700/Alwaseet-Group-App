@@ -1,20 +1,12 @@
-import sql from 'mssql';
+import sql from 'mssql/msnodesqlv8';
 
 // تكوين الاتصال بقاعدة البيانات
 const sqlConfig = {
+    server: process.env.DB_SERVER || 'DESKTOP-0QOGPV9\\ALWASEETPRODB',
     database: process.env.DB_NAME || 'AlwaseetGroup',
-    server: process.env.DB_SERVER || 'localhost\\ALWASEETPRODB', // تحديث اسم المثيل
-    user: process.env.DB_USER || 'sa', // استخدام حساب sa أو إنشاء مستخدم جديد
-    password: process.env.DB_PASSWORD || '700210ww', // تحديث كلمة المرور الجديدة
-    pool: {
-        max: 10,
-        min: 0,
-        idleTimeoutMillis: 30000
-    },
+    driver: 'msnodesqlv8',
     options: {
-        encrypt: false,
-        trustServerCertificate: true,
-        enableArithAbort: true
+        trustedConnection: true  // Windows Authentication
     }
 };
 
