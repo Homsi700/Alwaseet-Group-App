@@ -3,7 +3,9 @@ import sql from 'mssql';
 // تكوين الاتصال بقاعدة البيانات
 const sqlConfig = {
     database: process.env.DB_NAME || 'AlwaseetGroup',
-    server: process.env.DB_SERVER || 'DESKTOP-0QOGPV9\\ALWASEETPRODB',
+    server: process.env.DB_SERVER || 'localhost\\ALWASEETPRODB', // تحديث اسم المثيل
+    user: process.env.DB_USER || 'sa', // استخدام حساب sa أو إنشاء مستخدم جديد
+    password: process.env.DB_PASSWORD || '700210ww', // تحديث كلمة المرور الجديدة
     pool: {
         max: 10,
         min: 0,
@@ -12,7 +14,6 @@ const sqlConfig = {
     options: {
         encrypt: false,
         trustServerCertificate: true,
-        trustedConnection: true, // استخدام مصادقة Windows
         enableArithAbort: true
     }
 };
