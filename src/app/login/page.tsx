@@ -46,15 +46,13 @@ export default function LoginPage() {
         body: JSON.stringify(data),
       });
 
-      const result = await response.json();
-
-      if (response.ok && result.user && result.token) {
+      const result = await response.json();      if (response.ok && result.user) {
         authLogin(result.token, result.user);
         toast({
           title: 'تم تسجيل الدخول بنجاح',
           description: `مرحباً بعودتك، ${result.user.firstName || result.user.username}!`,
         });
-        router.push('/'); 
+        router.push('/dashboard');
       } else {
         toast({
           title: 'فشل تسجيل الدخول',
