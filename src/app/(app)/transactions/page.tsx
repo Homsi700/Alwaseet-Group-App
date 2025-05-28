@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar'; 
 import { format, isValid } from 'date-fns';
 import { arSA } from 'date-fns/locale'; 
+import { DateRange } from 'react-day-picker';
 
 interface Transaction {
   id: string;
@@ -37,7 +38,7 @@ export default function TransactionsLogPage() {
   const [transactions] = useState<Transaction[]>(initialTransactionsData); 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
-  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   
   const filteredTransactions = useMemo(() => {
     let data = [...transactions];
@@ -55,10 +56,10 @@ export default function TransactionsLogPage() {
       data = data.filter(item => item.type === filterType);
     }
 
-    if (dateRange.from && isValid(dateRange.from)) {
+    if (dateRange?.from && isValid(dateRange.from)) {
         data = data.filter(item => new Date(item.date) >= dateRange.from!);
     }
-    if (dateRange.to && isValid(dateRange.to)) {
+    if (dateRange?.to && isValid(dateRange.to)) {
       const inclusiveToDate = new Date(dateRange.to);
       inclusiveToDate.setHours(23, 59, 59, 999); 
       data = data.filter(item => new Date(item.date) <= inclusiveToDate);
@@ -70,7 +71,7 @@ export default function TransactionsLogPage() {
   const clearFilters = () => {
     setSearchTerm("");
     setFilterType("all");
-    setDateRange({});
+    setDateRange(undefined);
   };
   
   const formatDate = (dateString: string) => {
@@ -113,7 +114,7 @@ export default function TransactionsLogPage() {
               <PopoverTrigger asChild>
                 <Button variant="outline" className="w-full sm:w-auto min-w-[240px] justify-start text-left rtl:text-right font-normal rounded-md">
                   <CalendarIcon className="ml-2 rtl:mr-2 icon-directional h-4 w-4" />
-                  {dateRange.from ? 
+                  {dateRange?.from ? 
                     (dateRange.to ? `${format(dateRange.from, "PPP", {locale: arSA})} - ${format(dateRange.to, "PPP", {locale: arSA})}` : format(dateRange.from, "PPP", {locale: arSA})) 
                     : <span>اختر نطاق التاريخ</span>}
                 </Button>
@@ -126,7 +127,7 @@ export default function TransactionsLogPage() {
                 />
               </PopoverContent>
             </Popover>
-            {(searchTerm || filterType !== "all" || dateRange.from || dateRange.to) && (
+            {(searchTerm || filterType !== "all" || dateRange?.from || dateRange?.to) && (
                 <Button variant="ghost" onClick={clearFilters} className="rounded-md">مسح الفلاتر</Button>
             )}
             <Button variant="outline" className="w-full sm:w-auto rounded-md mr-auto rtl:ml-auto rtl:mr-0"> 

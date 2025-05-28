@@ -9,20 +9,25 @@ import { useLanguage } from '@/providers/LanguageProvider';
 
 interface IconCardProps {
   title: string;
-  description: string;
+  description?: string;
   icon: LucideIcon;
   href: string;
   className?: string;
+  variant?: 'default' | 'outline';
 }
 
-export function IconCard({ title, description, icon: Icon, href, className }: IconCardProps) {
+export function IconCard({ title, description, icon: Icon, href, className, variant = 'default' }: IconCardProps) {
   const { locale } = useLanguage();
   const buttonText = locale === 'ar' ? `الذهاب إلى ${title}` : `Go to ${title}`;
 
   return (
     <Link href={href} passHref legacyBehavior>
       <a className="block hover:no-underline h-full">
-        <Card className={cn("hover:shadow-xl transition-all duration-300 ease-in-out rounded-lg overflow-hidden h-full flex flex-col group bg-card text-card-foreground border border-border hover:border-primary/50", className)}>
+        <Card className={cn(
+          "hover:shadow-xl transition-all duration-300 ease-in-out rounded-lg overflow-hidden h-full flex flex-col group",
+          variant === 'outline' ? "bg-background border-border" : "bg-card text-card-foreground border border-border hover:border-primary/50",
+          className
+        )}>
           <CardHeader className="flex flex-row items-start justify-between space-y-0 p-5 pb-2">
             <div className="space-y-1">
               <CardTitle className="text-lg font-semibold text-primary group-hover:text-accent transition-colors">
@@ -34,9 +39,11 @@ export function IconCard({ title, description, icon: Icon, href, className }: Ic
             </div>
           </CardHeader>
           <CardContent className="flex-grow p-5 pt-0">
-            <CardDescription className="text-sm text-muted-foreground line-clamp-3">
-              {description}
-            </CardDescription>
+            {description && (
+              <CardDescription className="text-sm text-muted-foreground line-clamp-3">
+                {description}
+              </CardDescription>
+            )}
           </CardContent>
           <div className="p-5 pt-2 mt-auto">
              <Button variant="outline" className="w-full group/button border-primary/30 text-primary hover:bg-primary/5 hover:text-primary hover:border-primary focus-visible:ring-primary">

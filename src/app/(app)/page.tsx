@@ -1,8 +1,12 @@
 
+"use client";
+
 import { IconCard } from "@/components/ui/IconCard";
 import { dashboardGridItems, dashboardQuickAccessItems } from "@/components/layout/nav-items";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Package, ShoppingCart, Users } from "lucide-react";
+import { useEffect } from 'react';
+import { loadDataFromStorage } from '@/lib/sync-service';
 
 interface Kpi {
   title: string;
@@ -22,6 +26,11 @@ const kpis: Kpi[] = [
 ];
 
 export default function DashboardPage() {
+  // Load data from localStorage when the dashboard loads
+  useEffect(() => {
+    loadDataFromStorage();
+  }, []);
+
   return (
     <div className="space-y-8">
       <header className="mb-8">

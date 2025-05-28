@@ -15,7 +15,6 @@ import { Skeleton } from "@/components/ui/skeleton"
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider, // Ensure TooltipProvider is exported or handled globally
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 
@@ -35,6 +34,7 @@ type SidebarContext = {
   isMobile: boolean
   toggleSidebar: () => void
   side: "left" | "right"; // Add side to context
+  _setProviderSide?: (newSide: "left" | "right") => void; // Function to update the provider's side
 }
 
 const SidebarContext = React.createContext<SidebarContext | null>(null)
@@ -134,9 +134,14 @@ const SidebarProvider = React.forwardRef<
       setCurrentSide(newSide);
     }, []);
 
+    // Include _setProviderSide in the context value
+    const contextValueWithSetter = React.useMemo(() => ({
+      ...contextValue,
+      _setProviderSide: setProviderSide
+    }), [contextValue, setProviderSide]);
 
     return (
-      <SidebarContext.Provider value={{...contextValue, _setProviderSide: setProviderSide } as any}>
+      <SidebarContext.Provider value={contextValueWithSetter}>
           <div
             style={
               {
@@ -182,13 +187,13 @@ const Sidebar = React.forwardRef<
     ref
   ) => {
     const context = useSidebar()
-    const { isMobile, state, openMobile, setOpenMobile, _setProviderSide: setProviderSide } = context;
+    const { isMobile, state, openMobile, setOpenMobile, _setProviderSide } = context;
 
     React.useEffect(() => {
-      if (setProviderSide && side !== context.side) {
-        setProviderSide(side);
+      if (_setProviderSide && side !== context.side) {
+        _setProviderSide(side);
       }
-    }, [side, context.side, setProviderSide]);
+    }, [side, context.side, _setProviderSide]);
 
 
     if (collapsible === "none") {

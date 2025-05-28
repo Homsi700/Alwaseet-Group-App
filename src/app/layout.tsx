@@ -1,7 +1,8 @@
 
 import type { Metadata } from 'next';
-import { GeistSans } from 'geist/font/sans'; // استخدام GeistSans مباشرة
-import { GeistMono } from 'geist/font/mono'; // استخدام GeistMono مباشرة
+// استخدام خطوط بديلة حتى يتم تثبيت حزمة geist
+// import { GeistSans } from 'geist/font/sans';
+// import { GeistMono } from 'geist/font/mono';
 import './globals.css';
 import { AppProviders } from '@/providers/AppProviders';
 
@@ -17,7 +18,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
-      <body className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased`}>
+      <body className="font-sans antialiased">
         <AppProviders>
           {children}
         </AppProviders>

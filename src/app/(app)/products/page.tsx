@@ -30,29 +30,101 @@ const fetchProducts = async (searchTerm: string = ""): Promise<Product[]> => {
 };
 
 const addProduct = async (newProduct: Omit<Product, 'id' | 'productId' | 'companyId' | 'isActive'>): Promise<Product> => {
-  const response = await fetch('/api/products', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(newProduct),
-  });
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ message: 'فشل في إضافة المنتج' }));
-    throw new Error(errorData.message || 'فشل في إضافة المنتج');
+  console.log("[products/page.tsx] Adding new product:", newProduct);
+  
+  try {
+    // Get token from localStorage if available
+    let token = '';
+    if (typeof window !== 'undefined') {
+      token = localStorage.getItem('token') || '';
+      console.log("[products/page.tsx] Token from localStorage:", token ? "Found" : "Not found");
+    }
+    
+    // Use absolute URL for debugging
+    const apiUrl = window.location.origin + '/api/products';
+    console.log("[products/page.tsx] Posting to URL:", apiUrl);
+    
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify(newProduct),
+    });
+    
+    console.log("[products/page.tsx] Response status:", response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("[products/page.tsx] Failed to add product:", response.status, errorText);
+      
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        errorData = { message: 'فشل في إضافة المنتج: ' + errorText };
+      }
+      
+      throw new Error(errorData.message || 'فشل في إضافة المنتج');
+    }
+    
+    const data = await response.json();
+    console.log("[products/page.tsx] Product added successfully:", data);
+    return data;
+  } catch (error) {
+    console.error("[products/page.tsx] Exception while adding product:", error);
+    throw error;
   }
-  return response.json();
 };
 
 const updateProduct = async (updatedProduct: Partial<Product> & { productId: number }): Promise<Product> => {
-  const response = await fetch(`/api/products/${updatedProduct.productId}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(updatedProduct),
-  });
-  if (!response.ok) {
-     const errorData = await response.json().catch(() => ({ message: 'فشل في تحديث المنتج' }));
-    throw new Error(errorData.message || 'فشل في تحديث المنتج');
+  console.log("[products/page.tsx] Updating product:", updatedProduct);
+  
+  try {
+    // Get token from localStorage if available
+    let token = '';
+    if (typeof window !== 'undefined') {
+      token = localStorage.getItem('token') || '';
+      console.log("[products/page.tsx] Token from localStorage:", token ? "Found" : "Not found");
+    }
+    
+    // Use absolute URL for debugging
+    const apiUrl = window.location.origin + `/api/products/${updatedProduct.productId}`;
+    console.log("[products/page.tsx] Putting to URL:", apiUrl);
+    
+    const response = await fetch(apiUrl, {
+      method: 'PUT',
+      headers: { 
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify(updatedProduct),
+    });
+    
+    console.log("[products/page.tsx] Response status:", response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("[products/page.tsx] Failed to update product:", response.status, errorText);
+      
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        errorData = { message: 'فشل في تحديث المنتج: ' + errorText };
+      }
+      
+      throw new Error(errorData.message || 'فشل في تحديث المنتج');
+    }
+    
+    const data = await response.json();
+    console.log("[products/page.tsx] Product updated successfully:", data);
+    return data;
+  } catch (error) {
+    console.error("[products/page.tsx] Exception while updating product:", error);
+    throw error;
   }
-  return response.json();
 };
 
 const deleteProduct = async (productId: number): Promise<{ message: string }> => {
@@ -67,11 +139,47 @@ const deleteProduct = async (productId: number): Promise<{ message: string }> =>
 };
 
 const fetchCategories = async (): Promise<Category[]> => {
-    const response = await fetch('/api/categories');
-    if(!response.ok) {
-        throw new Error('فشل في جلب الفئات');
+    console.log("[products/page.tsx] Fetching categories from API...");
+    try {
+        // Get token from localStorage if available
+        let token = '';
+        if (typeof window !== 'undefined') {
+            token = localStorage.getItem('token') || '';
+            console.log("[products/page.tsx] Token from localStorage:", token ? "Found" : "Not found");
+        }
+        
+        // Use absolute URL for debugging
+        const apiUrl = window.location.origin + '/api/categories';
+        console.log("[products/page.tsx] Fetching from URL:", apiUrl);
+        
+        const response = await fetch(apiUrl, {
+            headers: token ? {
+                'Authorization': `Bearer ${token}`
+            } : {}
+        });
+        
+        console.log("[products/page.tsx] Response status:", response.status);
+        
+        if(!response.ok) {
+            const errorText = await response.text();
+            console.error("[products/page.tsx] Failed to fetch categories:", response.status, errorText);
+            throw new Error(`فشل في جلب الفئات: ${response.status} ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log("[products/page.tsx] Categories API response:", data);
+        
+        // Verify data structure
+        if (!Array.isArray(data)) {
+            console.error("[products/page.tsx] API did not return an array:", data);
+            return [];
+        }
+        
+        return data;
+    } catch (error) {
+        console.error("[products/page.tsx] Exception while fetching categories:", error);
+        throw error;
     }
-    return response.json();
 }
 
 
@@ -134,11 +242,21 @@ const ProductFormFields = ({
           <SelectValue placeholder={isLoadingCategories ? "جاري تحميل الفئات..." : (isErrorCategories ? "خطأ في تحميل الفئات" : "اختر فئة")} />
         </SelectTrigger>
         <SelectContent>
-          {categories.map(cat => (
-            <SelectItem key={cat.categoryId} value={cat.categoryId.toString()}>{cat.name}</SelectItem>
-          ))}
+          {categories && categories.length > 0 ? (
+            categories.map(cat => (
+              <SelectItem key={cat.categoryId || cat.id} value={(cat.categoryId || cat.id).toString()}>{cat.name}</SelectItem>
+            ))
+          ) : (
+            <SelectItem value="no-categories" disabled>لا توجد فئات متاحة</SelectItem>
+          )}
         </SelectContent>
       </Select>
+      {/* Debug info */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="col-span-4 text-xs mt-1 text-muted-foreground">
+          حالة الفئات: {isLoadingCategories ? "جاري التحميل" : (isErrorCategories ? "خطأ" : `تم تحميل ${Array.isArray(categories) ? categories.length : 0} فئة`)}
+        </div>
+      )}
       {isErrorCategories && (
         <div className="col-span-4 text-sm mt-1 text-destructive">
           خطأ في تحميل الفئات. يرجى المحاولة مرة أخرى.
@@ -166,6 +284,7 @@ export default function ProductListPage() {
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<Partial<Product>>({});
+  const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -182,11 +301,26 @@ export default function ProductListPage() {
     queryFn: () => fetchProducts(debouncedSearchTerm),
   });
 
-  const { data: categories = [], isLoading: isLoadingCategories, isError: isErrorCategories, error: categoriesError } = useQuery<Category[], Error>({
+  const { data: categories = [] as Category[], isLoading: isLoadingCategories, isError: isErrorCategories, error: categoriesError } = useQuery({
     queryKey: ['categories'],
     queryFn: fetchCategories,
     staleTime: 5 * 60 * 1000, // Cache categories for 5 minutes
+    retry: 3, // Retry 3 times if the request fails
+    retryDelay: 1000, // Wait 1 second between retries
   });
+  
+  // Handle success and error cases for categories query
+  useEffect(() => {
+    if (categories && categories.length > 0) {
+      console.log("Categories loaded successfully:", categories);
+    }
+  }, [categories]);
+  
+  useEffect(() => {
+    if (isErrorCategories && categoriesError) {
+      console.error("Error loading categories:", categoriesError);
+    }
+  }, [isErrorCategories, categoriesError]);
 
 
   const addProductMutation = useMutation({
@@ -252,23 +386,31 @@ export default function ProductListPage() {
   };
 
   const handleSaveProduct = () => {
+    console.log("[products/page.tsx] Saving product:", currentProduct);
+    
+    // Validate required fields
     if (!currentProduct.name || !currentProduct.barcode) {
+      console.error("[products/page.tsx] Validation error: name or barcode missing");
       toast({ title: "خطأ في التحقق", description: "اسم المنتج والباركود مطلوبان.", variant: "destructive" });
       return;
     }
     if (currentProduct.purchasePrice === undefined || currentProduct.purchasePrice < 0) {
+        console.error("[products/page.tsx] Validation error: invalid purchase price", currentProduct.purchasePrice);
         toast({ title: "خطأ في التحقق", description: "سعر الشراء يجب أن يكون رقمًا موجبًا.", variant: "destructive" });
         return;
     }
     if (currentProduct.salePrice === undefined || currentProduct.salePrice < 0) {
+        console.error("[products/page.tsx] Validation error: invalid sale price", currentProduct.salePrice);
         toast({ title: "خطأ في التحقق", description: "سعر البيع يجب أن يكون رقمًا موجبًا.", variant: "destructive" });
         return;
     }
     if (currentProduct.quantity === undefined || currentProduct.quantity < 0) {
+        console.error("[products/page.tsx] Validation error: invalid quantity", currentProduct.quantity);
         toast({ title: "خطأ في التحقق", description: "الكمية يجب أن تكون رقمًا موجبًا.", variant: "destructive" });
         return;
     }
 
+    // Prepare product data for saving
     const productToSave: Omit<Product, 'id' | 'productId' | 'companyId' | 'isActive'> = {
       name: currentProduct.name,
       barcode: currentProduct.barcode,
@@ -284,17 +426,75 @@ export default function ProductListPage() {
       imageUrl: currentProduct.imageUrl,
     };
 
-    if (currentProduct.productId) {
-      updateProductMutation.mutate({ ...productToSave, productId: currentProduct.productId } as Product);
-    } else {
-      addProductMutation.mutate(productToSave);
+    console.log("[products/page.tsx] Product data prepared for saving:", productToSave);
+
+    try {
+      if (currentProduct.productId) {
+        console.log("[products/page.tsx] Updating existing product with ID:", currentProduct.productId);
+        updateProductMutation.mutate({ ...productToSave, productId: currentProduct.productId } as Product);
+      } else {
+        console.log("[products/page.tsx] Adding new product");
+        addProductMutation.mutate(productToSave);
+      }
+    } catch (error) {
+      console.error("[products/page.tsx] Error during mutation:", error);
+      toast({ 
+        title: "خطأ غير متوقع", 
+        description: "حدث خطأ أثناء حفظ المنتج. يرجى المحاولة مرة أخرى.", 
+        variant: "destructive" 
+      });
     }
   };
 
-  const isSaving = addProductMutation.isPending || updateProductMutation.isPending;
+  // Update isSaving state based on mutation status
+  useEffect(() => {
+    setIsSaving(addProductMutation.isPending || updateProductMutation.isPending);
+  }, [addProductMutation.isPending, updateProductMutation.isPending]);
+
+  // Debug component for development
+  const DebugInfo = () => {
+    if (process.env.NODE_ENV !== 'development') return null;
+    
+    return (
+      <div className="p-4 my-4 border border-yellow-300 bg-yellow-50 rounded-md">
+        <h3 className="font-bold mb-2">معلومات التصحيح:</h3>
+        <div className="text-sm space-y-1">
+          <p>حالة الفئات: {isLoadingCategories ? "جاري التحميل" : (isErrorCategories ? "خطأ" : `تم تحميل ${Array.isArray(categories) ? categories.length : 0} فئة`)}</p>
+          {isErrorCategories && <p className="text-red-500">خطأ: {categoriesError?.message}</p>}
+          
+          <p>حالة المنتجات: {isLoadingProducts ? "جاري التحميل" : (isErrorProducts ? "خطأ" : `تم تحميل ${Array.isArray(products) ? products.length : 0} منتج`)}</p>
+          {isErrorProducts && <p className="text-red-500">خطأ: {productsError?.message}</p>}
+          
+          <p>حالة الإضافة: {addProductMutation.isPending ? "جاري الإضافة" : (addProductMutation.isError ? "خطأ" : (addProductMutation.isSuccess ? "تم بنجاح" : "لم يبدأ"))}</p>
+          {addProductMutation.isError && <p className="text-red-500">خطأ الإضافة: {addProductMutation.error?.message}</p>}
+          
+          {Array.isArray(categories) && categories.length > 0 && (
+            <div>
+              <p>الفئات المتاحة:</p>
+              <ul className="list-disc list-inside">
+                {categories.map((cat: Category) => (
+                  <li key={cat.id || cat.categoryId}>{cat.name} (ID: {cat.categoryId})</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          
+          {currentProduct && Object.keys(currentProduct).length > 0 && (
+            <div className="mt-2">
+              <p>بيانات المنتج الحالي:</p>
+              <pre className="bg-gray-100 p-2 rounded text-xs overflow-auto max-h-40">
+                {JSON.stringify(currentProduct, null, 2)}
+              </pre>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
+      {process.env.NODE_ENV === 'development' && <DebugInfo />}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-3xl font-bold text-foreground">قائمة المنتجات</h1>
         <Button onClick={openModalForAdd} className="rounded-md bg-primary hover:bg-primary/90 text-primary-foreground">
@@ -308,7 +508,7 @@ export default function ProductListPage() {
           <CardDescription>
             إدارة مخزونك وتفاصيل منتجاتك.
             {isLoadingProducts && " جاري تحميل المنتجات..."}
-            {!isLoadingProducts && !isErrorProducts && ` تم العثور على ${products.length} منتج(ات).`}
+            {!isLoadingProducts && !isErrorProducts && ` تم العثور على ${Array.isArray(products) ? products.length : 0} منتج(ات).`}
             {isErrorCategories && " خطأ في تحميل الفئات."}
           </CardDescription>
         </CardHeader>
@@ -363,7 +563,7 @@ export default function ProductListPage() {
                     </TableCell>
                   </TableRow>
                 )}
-                {!isLoadingProducts && !isErrorProducts && products.length === 0 && (
+                {!isLoadingProducts && !isErrorProducts && (!Array.isArray(products) || products.length === 0) && (
                     <TableRow>
                         <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                             لم يتم العثور على منتجات. قم بإضافة منتج جديد للبدء.

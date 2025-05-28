@@ -3,7 +3,16 @@ import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose'; // Replaced jsonwebtoken with jose
 
 // المسارات التي لا تحتاج إلى مصادقة
-const publicPaths = ['/api/auth/login', '/login'];
+const publicPaths = [
+  // Auth routes
+  '/api/auth/login', 
+  '/login',
+  
+  // API routes that should be public
+  '/api/categories',
+  '/api/products',
+  '/api/products/[productId]', // For individual product operations
+];
 
 // المسارات التي تتطلب مصادقة (لطلبات الصفحات)
 // middleware configuration matcher will handle API routes separately if needed.
@@ -28,7 +37,19 @@ export async function middleware(request: NextRequest) {
   const isPageRequest = !path.startsWith('/api');
 
   // التحقق إذا كان المسار عام
-  if (publicPaths.includes(path)) {
+  // Check if the path is in the public paths list or matches a pattern with [productId] or other parameters
+  const isPublicPath = publicPaths.some(publicPath => {
+    if (publicPath.includes('[')) {
+      // Convert [parameter] pattern to regex
+      const pattern = publicPath.replace(/\[\w+\]/g, '[^/]+');
+      const regex = new RegExp(`^${pattern}$`);
+      return regex.test(path);
+    }
+    return publicPath === path;
+  });
+  
+  if (isPublicPath) {
+    console.log(`[middleware] Public path: ${path}, allowing without auth`);
     return NextResponse.next();
   }
 

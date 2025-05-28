@@ -58,15 +58,6 @@ export function createErrorResponse(message: string, status: number = 401) {
         }
     );
 }
-export function createErrorResponse(message: string, status: number = 400) {
-    return new NextResponse(
-        JSON.stringify({ error: message }),
-        { 
-            status,
-            headers: { 'Content-Type': 'application/json' }
-        }
-    );
-}
 
 // التحقق من صلاحية الوصول للشركة
 export function checkCompanyAccess(user: any, companyId: number) {
