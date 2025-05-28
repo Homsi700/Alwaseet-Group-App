@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/providers/AuthProvider';
-import { AppLogoIcon } from '@/components/layout/nav-items'; // Assuming AppLogoIcon is defined here
+import { AppLogoIcon } from '@/components/layout/nav-items';
 import { Mail, Lock, Loader2, LogIn } from 'lucide-react';
 import Link from 'next/link';
 
@@ -26,7 +26,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { login: authLogin, isLoading: authLoading } = useAuth(); // Renamed to avoid conflict
+  const { login: authLogin, isLoading: authLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<LoginFormValues>({
@@ -48,13 +48,13 @@ export default function LoginPage() {
 
       const result = await response.json();
 
-      if (response.ok) {
-        authLogin(result.token, result.user); // Use the login function from AuthContext
+      if (response.ok && result.user && result.token) {
+        authLogin(result.token, result.user);
         toast({
           title: 'تم تسجيل الدخول بنجاح',
           description: `مرحباً بعودتك، ${result.user.firstName || result.user.username}!`,
         });
-        router.push('/'); // Redirect to dashboard or home page
+        router.push('/'); 
       } else {
         toast({
           title: 'فشل تسجيل الدخول',
@@ -88,9 +88,11 @@ export default function LoginPage() {
         <CardHeader className="bg-card p-8 text-center">
           <div className="flex flex-col items-center mb-6">
             <AppLogoIcon className="h-16 w-16 text-primary mb-3" />
-            <CardTitle className="text-3xl font-bold text-primary">محاسبة الوسيط</CardTitle>
+            <CardTitle className="text-3xl font-bold text-primary">محاسبي</CardTitle>
             <CardDescription className="text-muted-foreground mt-2 text-md">
-              مرحباً بعودتك! يرجى تسجيل الدخول للمتابعة.
+              نظام محاسبي متكامل مقدم من مجموعة الوسيط جروب.
+              <br />
+              يرجى تسجيل الدخول للمتابعة.
             </CardDescription>
           </div>
         </CardHeader>

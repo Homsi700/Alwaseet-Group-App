@@ -1,3 +1,4 @@
+
 import { IconCard } from "@/components/ui/IconCard";
 import { dashboardGridItems, dashboardQuickAccessItems } from "@/components/layout/nav-items";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,7 +25,7 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <header className="mb-8">
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
-          لوحة تحكم محاسبة الوسيط
+          لوحة تحكم نظام محاسبي
         </h1>
         <p className="text-lg text-muted-foreground mt-1">
           مرحباً بعودتك! إليك نظرة عامة على عملك.
