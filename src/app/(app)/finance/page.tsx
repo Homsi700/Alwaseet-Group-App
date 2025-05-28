@@ -1,6 +1,8 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Landmark } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Landmark, BookOpen, FilePlus, Banknote, LineChart } from "lucide-react";
+import Link from "next/link";
 
 export default function FinancePage() {
   return (
@@ -13,17 +15,36 @@ export default function FinancePage() {
             نظرة عامة على المالية
           </CardTitle>
           <CardDescription>
-            إدارة دليل الحسابات الخاص بك، وتسجيل قيود اليومية، وتسوية كشوفات الحساب البنكية، ومراقبة الوضع المالي العام. هذا القسم قيد التطوير حاليًا.
+            إدارة دليل الحسابات الخاص بك، تسجيل قيود اليومية، تسوية كشوفات الحساب البنكية، ومراقبة الوضع المالي العام.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="min-h-[300px] flex flex-col items-center justify-center bg-muted/30 rounded-md p-8 text-center">
-            <Landmark className="h-16 w-16 text-primary/50 mb-4" />
-            <h3 className="text-xl font-semibold text-foreground mb-2">الوحدة المالية قادمة قريبًا!</h3>
-            <p className="text-muted-foreground max-w-md">
-              يجري تطوير أدوات إدارة مالية شاملة. ترقبوا التحديثات المثيرة.
-            </p>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <Link href="/finance/chart-of-accounts" passHref>
+              <Button variant="outline" className="w-full h-20 text-lg rounded-md justify-start p-4 hover:bg-accent/10">
+                <BookOpen className="ml-3 rtl:mr-3 h-6 w-6 text-accent icon-directional" /> دليل الحسابات
+              </Button>
+            </Link>
+            <Link href="/finance/journal-entries" passHref>
+              <Button variant="outline" className="w-full h-20 text-lg rounded-md justify-start p-4 hover:bg-accent/10">
+                <FilePlus className="ml-3 rtl:mr-3 h-6 w-6 text-accent icon-directional" /> قيود اليومية
+              </Button>
+            </Link>
+             <Link href="/finance/bank-reconciliation" passHref>
+              <Button variant="outline" className="w-full h-20 text-lg rounded-md justify-start p-4 hover:bg-accent/10">
+                <Banknote className="ml-3 rtl:mr-3 h-6 w-6 text-accent icon-directional" /> المطابقات البنكية
+              </Button>
+            </Link>
+            <Link href="/finance/financial-statements" passHref>
+              <Button variant="outline" className="w-full h-20 text-lg rounded-md justify-start p-4 hover:bg-accent/10">
+                <LineChart className="ml-3 rtl:mr-3 h-6 w-6 text-accent icon-directional" /> القوائم المالية
+              </Button>
+            </Link>
           </div>
+           <p className="text-sm text-muted-foreground mt-8">
+            هذه الوحدة هي قلب النظام المحاسبي، حيث يمكنك إدارة جميع معاملاتك المالية بدقة وكفاءة،
+            واستخراج التقارير اللازمة لاتخاذ قرارات مستنيرة.
+          </p>
         </CardContent>
       </Card>
     </div>

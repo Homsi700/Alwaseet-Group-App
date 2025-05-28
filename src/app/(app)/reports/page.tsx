@@ -1,6 +1,16 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BarChartBig } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { BarChartBig, TrendingUp, Package, Users, LandmarkIcon, FilePieChart } from "lucide-react";
+import Link from "next/link";
+
+const reportItems = [
+  { title: "تقرير المبيعات", icon: TrendingUp, description: "تحليل المبيعات حسب الفترة، المنتج، أو العميل.", href: "/reports/sales" },
+  { title: "تقرير المخزون", icon: Package, description: "عرض حالة المخزون، حركة المواد، وتقييم المخزون.", href: "/reports/inventory" },
+  { title: "تقرير العملاء", icon: Users, description: "متابعة أرصدة العملاء وتحليل سلوكهم الشرائي.", href: "/reports/customers" },
+  { title: "تقرير الأرباح والخسائر", icon: FilePieChart, description: "عرض قائمة الدخل لفترة محددة.", href: "/reports/profit-loss" },
+  { title: "الميزانية العمومية", icon: LandmarkIcon, description: "عرض المركز المالي للشركة في تاريخ معين.", href: "/reports/balance-sheet" },
+];
 
 export default function ReportsPage() {
   return (
@@ -13,17 +23,29 @@ export default function ReportsPage() {
             نظرة عامة على التقارير
           </CardTitle>
           <CardDescription>
-            إنشاء تقارير أعمال ثاقبة حول المبيعات، والنفقات، والأرباح والخسائر، والميزانيات العمومية، والمزيد. هذا القسم قيد التطوير حاليًا.
+            إنشاء تقارير أعمال ثاقبة حول المبيعات، والنفقات، والأرباح والخسائر، والميزانيات العمومية، والمزيد.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="min-h-[300px] flex flex-col items-center justify-center bg-muted/30 rounded-md p-8 text-center">
-            <BarChartBig className="h-16 w-16 text-primary/50 mb-4" />
-            <h3 className="text-xl font-semibold text-foreground mb-2">وحدة التقارير قادمة قريبًا!</h3>
-            <p className="text-muted-foreground max-w-md">
-              يجري بناء ميزات تقارير وتحليلات قوية لتزويدك برؤى أعمال قيمة.
-            </p>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {reportItems.map((item) => (
+              <Link key={item.title} href={item.href} passHref>
+                <Card className="hover:shadow-md transition-shadow rounded-md">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-md font-medium text-primary">{item.title}</CardTitle>
+                    <item.icon className="h-5 w-5 text-accent" />
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-xs text-muted-foreground">{item.description}</p>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
           </div>
+          <p className="text-sm text-muted-foreground mt-8">
+            استفد من هذه التقارير للحصول على رؤى قيمة حول أداء عملك واتخاذ قرارات استراتيجية.
+            سيتم تطوير المزيد من التقارير المخصصة بناءً على احتياجاتك.
+          </p>
         </CardContent>
       </Card>
     </div>
