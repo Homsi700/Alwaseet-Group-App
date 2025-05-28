@@ -39,48 +39,59 @@ async function executeQuery<T>(query: string, params: any = {}): Promise<T> {
             });
         } catch (networkError) {
             console.error('[db.ts] Network error fetching from bridge:', networkError);
-            throw new Error(`Network error connecting to Python bridge: ${(networkError as Error).message}`);
+            // Provide a more user-friendly error message for network issues
+            const errorMessage = networkError instanceof Error ? networkError.message : 'Unknown network error';
+            throw new Error(`Network error connecting to Python bridge: ${errorMessage}. Ensure the Python bridge is running.`);
         }
         
-        console.log(`[db.ts] Bridge response status: ${response.status}`);
+        const responseStatus = response.status;
+        const responseText = await response.text(); // Get text first to avoid issues if not JSON
+        console.log(`[db.ts] Bridge response status: ${responseStatus}`);
+        console.log(`[db.ts] Bridge response text: ${responseText.substring(0, 200)}...`); // Log snippet of response
 
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`[db.ts] Bridge response not OK. Status: ${response.status}, Body: ${errorText}`);
-            let errorMessage = `Python bridge error: ${response.status}`;
+            let errorMessage = `Python bridge error: ${responseStatus}`;
             try {
-                const errorJson = JSON.parse(errorText);
-                errorMessage = errorJson.message || errorJson.error || errorText;
+                const errorJson = JSON.parse(responseText);
+                errorMessage = errorJson.message || errorJson.error || `Python bridge error: ${responseStatus} - ${responseText}`;
+                if (errorJson.detailed_errors) {
+                    errorMessage += ` Details: ${JSON.stringify(errorJson.detailed_errors)}`;
+                }
+                 if (errorJson.query_attempted) {
+                    errorMessage += ` Query: ${errorJson.query_attempted}`;
+                }
             } catch (e) {
-                // errorText is not JSON, use it as is
-                errorMessage = `Python bridge error: ${response.status} - ${errorText}`;
+                // responseText is not JSON, use it as is
+                errorMessage = `Python bridge error: ${responseStatus} - ${responseText}`;
             }
+            console.error(`[db.ts] Bridge response not OK. Error: ${errorMessage}`);
             throw new Error(errorMessage);
         }
 
-        const result = await response.json();
-        // console.log(`[db.ts] Bridge response JSON:`, result); // Can be very verbose
-        
-        if (result && typeof result === 'object' && 'success' in result && !result.success) {
-            console.error('[db.ts] Bridge reported failure:', result.error, result.detailed_errors);
-            const message = result.message || result.error || 'Unknown error from Python bridge';
-            // Include detailed_errors if available
-            const detailed = result.detailed_errors ? ` Details: ${JSON.stringify(result.detailed_errors)}` : '';
-            throw new Error(`${message}${detailed}`);
+        try {
+            const result = JSON.parse(responseText);
+            // console.log(`[db.ts] Bridge response JSON:`, result); // Can be very verbose
+            
+            if (result && typeof result === 'object' && 'success' in result && !result.success) {
+                console.error('[db.ts] Bridge reported failure:', result.error, result.detailed_errors);
+                const message = result.message || result.error || 'Unknown error from Python bridge';
+                const detailed = result.detailed_errors ? ` Details: ${JSON.stringify(result.detailed_errors)}` : '';
+                throw new Error(`${message}${detailed}`);
+            }
+            
+            if (result && typeof result === 'object' && 'data' in result) {
+                 console.log(`[db.ts] Bridge call successful.`);
+                return result.data as T;
+            } else {
+                console.error('[db.ts] Bridge response missing data field or invalid structure:', result);
+                throw new Error('Invalid response structure from Python bridge: missing data field.');
+            }
+        } catch (jsonError) {
+            console.error('[db.ts] Error parsing JSON response from bridge:', jsonError);
+            throw new Error(`Error parsing JSON response from Python bridge: ${responseText}`);
         }
-        
-        // Ensure result.data exists
-        if (result && typeof result === 'object' && 'data' in result) {
-             console.log(`[db.ts] Bridge call successful. Data received (first 50 chars): ${JSON.stringify(result.data).substring(0,50)}...`);
-            return result.data as T;
-        } else {
-            console.error('[db.ts] Bridge response missing data field or invalid structure:', result);
-            throw new Error('Invalid response structure from Python bridge: missing data field.');
-        }
-
     });
 }
 
 // تصدير الدوال اللازمة
 export { executeQuery };
-    
