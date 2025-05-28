@@ -1,3 +1,4 @@
+
 {
   "compilerOptions": {
     "target": "ES2020",
@@ -6,7 +7,7 @@
       "dom.iterable",
       "esnext"
     ],
-    "module": "ESNext",
+    "module": "NodeNext", // Changed from ESNext
     "moduleResolution": "NodeNext",
     "esModuleInterop": true,
     "strict": true,
@@ -15,8 +16,8 @@
     "isolatedModules": true,
     "noEmit": false, // ← مهم للسكربتات المستقلة
     "outDir": "./dist", // ← إضافة مسار للإخراج
-    "rootDir": "./src", // ← تأكد أنه يتطابق مع هيكل مشروعك
-    "jsx": "preserve", // ← فقط إذا كنت تستخدم Next.js
+    "rootDir": ".", // Changed from ./src
+    "jsx": "preserve", 
     "paths": {
       "@/*": [
         "./src/*"
@@ -35,7 +36,7 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "src/scripts/**/*" // ← تضمين مجلد السكربتات
+    "src/scripts/**/*" 
   ],
   "exclude": [
     "node_modules"
