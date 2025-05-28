@@ -1,41 +1,51 @@
 @echo off
-echo Starting Alwaseet Group App Development Environment...
+echo Starting Alwaseet Group App - Muhasiby Project...
+echo This script will start the Python DB bridge and the Next.js development server.
 echo.
 
-REM Check if Python virtual environment exists
-if not exist .\.venv\Scripts\activate.bat (
-    echo ERROR: Python virtual environment (.venv) not found or not set up correctly.
-    echo Please run install_dependencies.bat first to set it up.
+set VENV_DIR=.venv
+
+REM Check for Python virtual environment
+if not exist "%VENV_DIR%\Scripts\activate.bat" (
+    echo ERROR: Python virtual environment ("%VENV_DIR%") not found.
+    echo Please run 'install_dependencies.bat' first to set it up.
     pause
     goto :eof
 )
+echo Python virtual environment found.
+echo.
 
+REM Activate Python virtual environment
 echo Activating Python virtual environment...
-call .\.venv\Scripts\activate.bat
-if errorlevel 1 (
-    echo ERROR: Failed to activate Python virtual environment.
-    pause
-    goto :eof
-)
-echo Python virtual environment activated.
+call "%VENV_DIR%\Scripts\activate.bat"
 echo.
 
-echo Starting Python DB bridge in a new window...
-REM Using start /B runs the command in the background without a new window,
-REM but its output will mix. Using `start "Title" cmd /c` gives it a separate window.
-start "Python DB Bridge" cmd /c "echo Starting Python DB Bridge... ^& python src/scripts/db_bridge.py ^& echo Python DB Bridge has finished. You can close this window. ^& pause"
+REM Start Python DB Bridge in a new window
+echo Starting Python DB bridge (src/scripts/db_bridge.py) in a new terminal window...
+echo The DB bridge window will show logs for database interactions. Keep it running.
+start "Python DB Bridge - Muhasiby" cmd /k "echo Python DB Bridge for Muhasiby - Running... && python src/scripts/db_bridge.py"
+echo.
+
+echo Waiting for DB bridge to initialize (5 seconds)...
+REM Using ping for delay as timeout might not be available or behave differently
+ping -n 6 127.0.0.1 > nul
+echo DB bridge should be starting up.
+echo.
+
+REM Start Next.js development server
+echo Starting Next.js development server (npm run dev)...
+echo This will open your browser to http://localhost:9002 when ready.
+npm run dev
 
 echo.
-echo Waiting for Python DB bridge to initialize (5 seconds)...
-timeout /t 5 /nobreak >nul
+echo --------------------------------------------------------------------
+echo If the browser did not open automatically, please navigate to http://localhost:9002
+echo.
+echo To stop the DB bridge, close its dedicated terminal window.
+echo To stop the Next.js server, press CTRL+C in this window.
+echo --------------------------------------------------------------------
+echo.
 
-echo.
-echo Starting Next.js development server...
-echo (This will open the application in your default web browser at http://localhost:9002)
-echo.
-call npm run dev
-
-echo.
-echo Next.js development server has been stopped.
+REM Deactivate virtual environment when this script main cmd window is closed or interrupted (though npm run dev will keep it open)
+deactivate
 pause
-:eof
