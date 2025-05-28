@@ -76,7 +76,19 @@ const fetchCategories = async (): Promise<Category[]> => {
 
 
 // Form component for Add/Edit Product
-const ProductFormFields = ({ product, setProduct, categories, isLoadingCategories }: { product: Partial<Product>, setProduct: (name: keyof Product, value: any) => void, categories: Category[], isLoadingCategories: boolean }) => (
+const ProductFormFields = ({ 
+  product, 
+  setProduct, 
+  categories, 
+  isLoadingCategories,
+  isErrorCategories // Added prop
+}: { 
+  product: Partial<Product>, 
+  setProduct: (name: keyof Product, value: any) => void, 
+  categories: Category[], 
+  isLoadingCategories: boolean,
+  isErrorCategories: boolean // Added prop type
+}) => (
   <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-2 rtl:pl-2 rtl:pr-0">
     <div className="grid grid-cols-4 items-center gap-4">
       <Label htmlFor="name" className="text-left rtl:text-right">الاسم</Label>
@@ -115,11 +127,11 @@ const ProductFormFields = ({ product, setProduct, categories, isLoadingCategorie
       <Select
         value={product.categoryId?.toString() || ""}
         onValueChange={(value) => setProduct('categoryId', value ? parseInt(value) : undefined)}
-        disabled={isLoadingCategories}
-        dir="rtl" 
+        disabled={isLoadingCategories || isErrorCategories} // Disable if error loading categories
+        dir="rtl"
       >
         <SelectTrigger className="col-span-3 rounded-md">
-          <SelectValue placeholder={isLoadingCategories ? "جاري تحميل الفئات..." : "اختر فئة"} />
+          <SelectValue placeholder={isLoadingCategories ? "جاري تحميل الفئات..." : (isErrorCategories ? "خطأ في تحميل الفئات" : "اختر فئة")} />
         </SelectTrigger>
         <SelectContent>
           {categories.map(cat => (
@@ -127,6 +139,11 @@ const ProductFormFields = ({ product, setProduct, categories, isLoadingCategorie
           ))}
         </SelectContent>
       </Select>
+      {isErrorCategories && (
+        <div className="col-span-4 text-sm mt-1 text-destructive">
+          خطأ في تحميل الفئات. يرجى المحاولة مرة أخرى.
+        </div>
+      )}
     </div>
     <div className="grid grid-cols-4 items-center gap-4">
       <Label htmlFor="expirationDate" className="text-left rtl:text-right">تاريخ الصلاحية</Label>
@@ -161,11 +178,10 @@ export default function ProductListPage() {
   }, [searchTerm]);
 
   const { data: products = [], isLoading: isLoadingProducts, isError: isErrorProducts, error: productsError } = useQuery<Product[], Error>({
-    queryKey: ['products', debouncedSearchTerm], 
+    queryKey: ['products', debouncedSearchTerm],
     queryFn: () => fetchProducts(debouncedSearchTerm),
-    // keepPreviousData: true, // تم تحديث tanstack-query، هذا قد يكون مختلفاً
   });
-  
+
   const { data: categories = [], isLoading: isLoadingCategories, isError: isErrorCategories, error: categoriesError } = useQuery<Category[], Error>({
     queryKey: ['categories'],
     queryFn: fetchCategories,
@@ -212,7 +228,7 @@ export default function ProductListPage() {
 
 
   const openModalForAdd = () => {
-    setCurrentProduct({}); 
+    setCurrentProduct({});
     setIsModalOpen(true);
   };
 
@@ -230,7 +246,7 @@ export default function ProductListPage() {
       deleteProductMutation.mutate(productId);
     }
   };
-  
+
   const handleProductFormFieldChange = (fieldName: keyof Product, value: any) => {
     setCurrentProduct(prev => ({ ...prev, [fieldName]: value }));
   };
@@ -268,13 +284,13 @@ export default function ProductListPage() {
       imageUrl: currentProduct.imageUrl,
     };
 
-    if (currentProduct.productId) { 
+    if (currentProduct.productId) {
       updateProductMutation.mutate({ ...productToSave, productId: currentProduct.productId } as Product);
-    } else { 
+    } else {
       addProductMutation.mutate(productToSave);
     }
   };
-  
+
   const isSaving = addProductMutation.isPending || updateProductMutation.isPending;
 
   return (
@@ -290,7 +306,7 @@ export default function ProductListPage() {
         <CardHeader>
           <CardTitle>جميع المنتجات</CardTitle>
           <CardDescription>
-            إدارة مخزونك وتفاصيل منتجاتك. 
+            إدارة مخزونك وتفاصيل منتجاتك.
             {isLoadingProducts && " جاري تحميل المنتجات..."}
             {!isLoadingProducts && !isErrorProducts && ` تم العثور على ${products.length} منتج(ات).`}
             {isErrorCategories && " خطأ في تحميل الفئات."}
@@ -388,11 +404,12 @@ export default function ProductListPage() {
               {currentProduct.productId ? "تحديث تفاصيل المنتج." : "املأ تفاصيل المنتج الجديد."}
             </DialogDescription>
           </DialogHeader>
-          <ProductFormFields 
-            product={currentProduct} 
-            setProduct={handleProductFormFieldChange} 
-            categories={categories} 
-            isLoadingCategories={isLoadingCategories} 
+          <ProductFormFields
+            product={currentProduct}
+            setProduct={handleProductFormFieldChange}
+            categories={categories}
+            isLoadingCategories={isLoadingCategories}
+            isErrorCategories={isErrorCategories} // Pass the prop here
            />
           <DialogFooter>
             <DialogClose asChild>
