@@ -1,97 +1,133 @@
 
-// استخدام Python كجسر للاتصال بقاعدة البيانات
-const DB_BRIDGE_URL = 'http://localhost:3001'; // تأكد من أن هذا هو العنوان والمنفذ الذي يعمل عليه جسر Python
+import sql from 'mssql';
+import dotenv from 'dotenv';
 
-// دالة للانتظار
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+dotenv.config({ path: '.env.local' }); // Load .env.local variables
 
-// دالة إعادة المحاولة
-async function retry<T>(fn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> {
-    try {
-        console.log('[db.ts] Attempting DB operation...');
-        return await fn();
-    } catch (error) {
-        console.error(`[db.ts] DB operation failed. Retries left: ${retries}. Error:`, error);
-        if (retries === 0) {
-            console.error('[db.ts] No more retries left. Throwing error.');
-            throw error;
-        }
-        await sleep(delay);
-        return retry(fn, retries - 1, delay * 2);
-    }
+const dbConfig: sql.config = {
+  user: process.env.DB_USER, // Corrected to DB_USER
+  password: process.env.DB_PASSWORD, // Corrected to DB_PASSWORD
+  server: process.env.DB_SERVER || 'localhost', // Default to localhost if not set
+  database: process.env.DB_DATABASE || '',
+  port: parseInt(process.env.DB_PORT || "1433", 10),
+  options: {
+    encrypt: process.env.DB_ENCRYPT === 'true', // Use strict 'true' check
+    trustServerCertificate: process.env.DB_TRUST_SERVER_CERTIFICATE === 'true', // Use strict 'true' check
+  },
+  connectionTimeout: 30000, // 30 seconds
+  requestTimeout: 30000, // 30 seconds
+  pool: {
+    max: 10,
+    min: 0,
+    idleTimeoutMillis: 30000,
+  },
+};
+
+// For Windows Authentication, trustedConnection is handled differently in mssql
+// If DB_TRUSTED_CONNECTION is true, user and password should not be provided
+if (process.env.DB_TRUSTED_CONNECTION === 'true') {
+  dbConfig.user = undefined;
+  dbConfig.password = undefined;
+  dbConfig.options!.trustedConnection = true; // mssql uses options.trustedConnection
 }
 
-// دالة تنفيذ الاستعلامات من خلال جسر Python
-async function executeQuery<T>(query: string, params: any = {}): Promise<T> {
-    return retry(async () => { // Re-enabled retry
-        console.log(`[db.ts] Executing via bridge. URL: ${DB_BRIDGE_URL}/query`);
-        console.log(`[db.ts] Query: ${query}`);
-        console.log(`[db.ts] Params: ${JSON.stringify(params)}`);
 
-        let response;
-        try {
-            response = await fetch(`${DB_BRIDGE_URL}/query`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ query, params })
-            });
-        } catch (networkError) {
-            console.error('[db.ts] Network error fetching from bridge:', networkError);
-            // Provide a more user-friendly error message for network issues
-            const errorMessage = networkError instanceof Error ? networkError.message : 'Unknown network error';
-            throw new Error(`Network error connecting to Python bridge: ${errorMessage}. Ensure the Python bridge is running.`);
-        }
-        
-        const responseStatus = response.status;
-        const responseText = await response.text(); // Get text first to avoid issues if not JSON
-        console.log(`[db.ts] Bridge response status: ${responseStatus}`);
-        console.log(`[db.ts] Bridge response text: ${responseText.substring(0, 200)}...`); // Log snippet of response
+console.log('[db.ts] Initializing DB connection pool with config:', {
+    server: dbConfig.server,
+    database: dbConfig.database,
+    user: dbConfig.user ? '********' : undefined, // Mask user
+    port: dbConfig.port,
+    options: dbConfig.options,
+});
 
-        if (!response.ok) {
-            let errorMessage = `Python bridge error: ${responseStatus}`;
-            try {
-                const errorJson = JSON.parse(responseText);
-                errorMessage = errorJson.message || errorJson.error || `Python bridge error: ${responseStatus} - ${responseText}`;
-                if (errorJson.detailed_errors) {
-                    errorMessage += ` Details: ${JSON.stringify(errorJson.detailed_errors)}`;
-                }
-                 if (errorJson.query_attempted) {
-                    errorMessage += ` Query: ${errorJson.query_attempted}`;
-                }
-            } catch (e) {
-                // responseText is not JSON, use it as is
-                errorMessage = `Python bridge error: ${responseStatus} - ${responseText}`;
-            }
-            console.error(`[db.ts] Bridge response not OK. Error: ${errorMessage}`);
-            throw new Error(errorMessage);
-        }
+let pool: sql.ConnectionPool | null = null;
+let poolConnectPromise: Promise<sql.ConnectionPool> | null = null;
 
-        try {
-            const result = JSON.parse(responseText);
-            // console.log(`[db.ts] Bridge response JSON:`, result); // Can be very verbose
-            
-            if (result && typeof result === 'object' && 'success' in result && !result.success) {
-                console.error('[db.ts] Bridge reported failure:', result.error, result.detailed_errors);
-                const message = result.message || result.error || 'Unknown error from Python bridge';
-                const detailed = result.detailed_errors ? ` Details: ${JSON.stringify(result.detailed_errors)}` : '';
-                throw new Error(`${message}${detailed}`);
-            }
-            
-            if (result && typeof result === 'object' && 'data' in result) {
-                 console.log(`[db.ts] Bridge call successful.`);
-                return result.data as T;
-            } else {
-                console.error('[db.ts] Bridge response missing data field or invalid structure:', result);
-                throw new Error('Invalid response structure from Python bridge: missing data field.');
-            }
-        } catch (jsonError) {
-            console.error('[db.ts] Error parsing JSON response from bridge:', jsonError);
-            throw new Error(`Error parsing JSON response from Python bridge: ${responseText}`);
-        }
+const getPool = (): Promise<sql.ConnectionPool> => {
+  if (poolConnectPromise) {
+    return poolConnectPromise;
+  }
+
+  poolConnectPromise = new sql.ConnectionPool(dbConfig)
+    .connect()
+    .then(connectedPool => {
+      pool = connectedPool;
+      console.log('[db.ts] SQL Server Connection Pool Created Successfully.');
+      pool.on('error', err => {
+        console.error('[db.ts] SQL Pool Error:', err);
+        // Optionally, try to recreate the pool or signal critical failure
+        pool = null;
+        poolConnectPromise = null; // Reset promise to allow reconnection attempt
+      });
+      return pool;
+    })
+    .catch(err => {
+      console.error('[db.ts] Failed to create SQL Server Connection Pool:', err);
+      poolConnectPromise = null; // Reset promise to allow reconnection attempt
+      throw err; // Re-throw error to be caught by caller
     });
+
+  return poolConnectPromise;
+};
+
+async function executeQuery<T>(query: string, params: Record<string, any> = {}): Promise<T> {
+  console.log(`[db.ts] Attempting to execute query: ${query.substring(0,100)}...`);
+  console.log(`[db.ts] With params:`, params);
+
+  try {
+    const currentPool = await getPool();
+    const request = currentPool.request();
+
+    // Add parameters to the request
+    for (const key in params) {
+      if (Object.prototype.hasOwnProperty.call(params, key)) {
+        // Infer SQL type or set explicitly if needed. For simplicity, mssql often infers well.
+        // Example: request.input(key, sql.NVarChar, params[key]);
+        request.input(key, params[key]);
+      }
+    }
+
+    const result = await request.query(query);
+    console.log(`[db.ts] Query executed successfully. Rows affected/returned: ${result.rowsAffected[0] !== undefined ? result.rowsAffected[0] : result.recordset?.length}`);
+    
+    // For SELECT statements, result.recordset contains the data
+    // For INSERT, UPDATE, DELETE, result.rowsAffected indicates success
+    // We'll assume SELECT queries expect recordset, others might not return data this way.
+    // The generic type T will determine what the caller expects.
+    // If it's an array of objects (typical for SELECT), return recordset.
+    // If it's a number (typical for rowsAffected), the caller should handle that.
+    // This simple return might need adjustment based on query types.
+    return result.recordset as T;
+
+  } catch (error) {
+    const err = error as sql.ISqlError; // Type assertion
+    console.error(`[db.ts] SQL Error executing query: ${query.substring(0,100)}...`);
+    console.error(`[db.ts] Error Code: ${err.code}, Message: ${err.message}`);
+    console.error(`[db.ts] Full Error:`, err);
+    // Construct a more detailed error message
+    let detailedErrorMessage = `SQL Execution Failed: ${err.message} (Code: ${err.code})`;
+    if (err.originalError) {
+        detailedErrorMessage += ` Original Error: ${err.originalError}`;
+    }
+    throw new Error(detailedErrorMessage);
+  }
 }
 
-// تصدير الدوال اللازمة
+// Optional: Close the pool when the application exits (e.g., in a cleanup script or server shutdown)
+// async function closePool() {
+//   try {
+//     if (pool) {
+//       await pool.close();
+//       pool = null;
+//       poolConnectPromise = null;
+//       console.log('[db.ts] SQL Server Connection Pool Closed.');
+//     }
+//   } catch (error) {
+//     console.error('[db.ts] Error closing SQL Server Connection Pool:', error);
+//   }
+// }
+
+// process.on('SIGINT', closePool); // Example for graceful shutdown
+// process.on('SIGTERM', closePool);
+
 export { executeQuery };

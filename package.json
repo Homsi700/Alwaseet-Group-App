@@ -6,15 +6,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 9002",
-    "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
-    "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test-db-connection": "tsx src/scripts/test-db-connection.ts",
-    "admin:update-password": "tsx src/scripts/update-admin-password.ts",
-    "db:bridge": "python src/scripts/db_bridge.py"
+    "admin:update-password": "tsx scripts/update-admin-password.ts"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.8.0",
@@ -46,11 +42,13 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
+    "dotenv": "^16.5.0",
     "firebase": "^11.8.1",
     "framer-motion": "^12.14.0",
     "genkit": "^1.8.0",
     "jose": "^5.6.3",
     "lucide-react": "^0.475.0",
+    "mssql": "^11.0.0",
     "next": "15.2.3",
     "next-themes": "^0.3.0",
     "patch-package": "^8.0.0",
@@ -66,11 +64,11 @@
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
+    "@types/mssql": "^9.1.5",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "cross-env": "^7.0.3",
-    "dotenv": "^16.5.0",
     "esbuild": "^0.20.2",
     "genkit-cli": "^1.8.0",
     "postcss": "^8",
