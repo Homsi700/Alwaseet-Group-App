@@ -66,8 +66,6 @@ const deleteProduct = async (productId: number): Promise<{ message: string }> =>
   return response.json();
 };
 
-// Mock categories for now, will be fetched from API later
-// Actual categories will be fetched via API by React Query
 const fetchCategories = async (): Promise<Category[]> => {
     const response = await fetch('/api/categories');
     if(!response.ok) {
@@ -79,7 +77,7 @@ const fetchCategories = async (): Promise<Category[]> => {
 
 // Form component for Add/Edit Product
 const ProductFormFields = ({ product, setProduct, categories, isLoadingCategories }: { product: Partial<Product>, setProduct: (name: keyof Product, value: any) => void, categories: Category[], isLoadingCategories: boolean }) => (
-  <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
+  <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-2 rtl:pl-2 rtl:pr-0">
     <div className="grid grid-cols-4 items-center gap-4">
       <Label htmlFor="name" className="text-left rtl:text-right">الاسم</Label>
       <Input id="name" value={product.name || ""} onChange={(e) => setProduct('name', e.target.value)} className="col-span-3 rounded-md" placeholder="اسم المنتج" />
@@ -94,15 +92,15 @@ const ProductFormFields = ({ product, setProduct, categories, isLoadingCategorie
     </div>
     <div className="grid grid-cols-4 items-center gap-4">
       <Label htmlFor="purchasePrice" className="text-left rtl:text-right">سعر الشراء</Label>
-      <Input id="purchasePrice" type="number" value={product.purchasePrice || ""} onChange={(e) => setProduct('purchasePrice', parseFloat(e.target.value) || 0)} className="col-span-3 rounded-md" placeholder="0.00" />
+      <Input id="purchasePrice" type="number" value={product.purchasePrice || ""} onChange={(e) => setProduct('purchasePrice', parseFloat(e.target.value) || 0)} className="col-span-3 rounded-md" placeholder="٠٫٠٠" />
     </div>
     <div className="grid grid-cols-4 items-center gap-4">
       <Label htmlFor="salePrice" className="text-left rtl:text-right">سعر البيع</Label>
-      <Input id="salePrice" type="number" value={product.salePrice || ""} onChange={(e) => setProduct('salePrice', parseFloat(e.target.value) || 0)} className="col-span-3 rounded-md" placeholder="0.00" />
+      <Input id="salePrice" type="number" value={product.salePrice || ""} onChange={(e) => setProduct('salePrice', parseFloat(e.target.value) || 0)} className="col-span-3 rounded-md" placeholder="٠٫٠٠" />
     </div>
     <div className="grid grid-cols-4 items-center gap-4">
       <Label htmlFor="quantity" className="text-left rtl:text-right">الكمية</Label>
-      <Input id="quantity" type="number" value={product.quantity || ""} onChange={(e) => setProduct('quantity', parseInt(e.target.value) || 0)} className="col-span-3 rounded-md" placeholder="0" />
+      <Input id="quantity" type="number" value={product.quantity || ""} onChange={(e) => setProduct('quantity', parseInt(e.target.value) || 0)} className="col-span-3 rounded-md" placeholder="٠" />
     </div>
     <div className="grid grid-cols-4 items-center gap-4">
         <Label htmlFor="unitOfMeasure" className="text-left rtl:text-right">وحدة القياس</Label>
@@ -110,7 +108,7 @@ const ProductFormFields = ({ product, setProduct, categories, isLoadingCategorie
     </div>
     <div className="grid grid-cols-4 items-center gap-4">
         <Label htmlFor="minimumQuantity" className="text-left rtl:text-right">حد أدنى للكمية</Label>
-        <Input id="minimumQuantity" type="number" value={product.minimumQuantity || ""} onChange={(e) => setProduct('minimumQuantity', parseInt(e.target.value) || 0)} className="col-span-3 rounded-md" placeholder="0 (لتنبيهات المخزون)" />
+        <Input id="minimumQuantity" type="number" value={product.minimumQuantity || ""} onChange={(e) => setProduct('minimumQuantity', parseInt(e.target.value) || 0)} className="col-span-3 rounded-md" placeholder="٠ (لتنبيهات المخزون)" />
     </div>
      <div className="grid grid-cols-4 items-center gap-4">
       <Label htmlFor="category" className="text-left rtl:text-right">الفئة</Label>
@@ -118,6 +116,7 @@ const ProductFormFields = ({ product, setProduct, categories, isLoadingCategorie
         value={product.categoryId?.toString() || ""}
         onValueChange={(value) => setProduct('categoryId', value ? parseInt(value) : undefined)}
         disabled={isLoadingCategories}
+        dir="rtl" 
       >
         <SelectTrigger className="col-span-3 rounded-md">
           <SelectValue placeholder={isLoadingCategories ? "جاري تحميل الفئات..." : "اختر فئة"} />
@@ -161,24 +160,23 @@ export default function ProductListPage() {
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
-  const { data: products = [], isLoading: isLoadingProducts, isError: isErrorProducts, error: productsError } = useQuery<Product[], Error>(
-    ['products', debouncedSearchTerm], 
-    () => fetchProducts(debouncedSearchTerm),
-    {
-      keepPreviousData: true, 
-    }
-  );
+  const { data: products = [], isLoading: isLoadingProducts, isError: isErrorProducts, error: productsError } = useQuery<Product[], Error>({
+    queryKey: ['products', debouncedSearchTerm], 
+    queryFn: () => fetchProducts(debouncedSearchTerm),
+    // keepPreviousData: true, // تم تحديث tanstack-query، هذا قد يكون مختلفاً
+  });
   
-  const { data: categories = [], isLoading: isLoadingCategories, isError: isErrorCategories, error: categoriesError } = useQuery<Category[], Error>(
-    ['categories'],
-    fetchCategories,
-    { staleTime: 5 * 60 * 1000 } // Cache categories for 5 minutes
-  );
+  const { data: categories = [], isLoading: isLoadingCategories, isError: isErrorCategories, error: categoriesError } = useQuery<Category[], Error>({
+    queryKey: ['categories'],
+    queryFn: fetchCategories,
+    staleTime: 5 * 60 * 1000, // Cache categories for 5 minutes
+  });
 
 
-  const addProductMutation = useMutation(addProduct, {
+  const addProductMutation = useMutation({
+    mutationFn: addProduct,
     onSuccess: (newProduct) => {
-      queryClient.invalidateQueries(['products']);
+      queryClient.invalidateQueries({ queryKey: ['products'] });
       toast({ title: "تمت إضافة المنتج", description: `تمت إضافة ${newProduct.name} بنجاح.` });
       setIsModalOpen(false);
       setCurrentProduct({});
@@ -188,9 +186,10 @@ export default function ProductListPage() {
     }
   });
 
-  const updateProductMutation = useMutation(updateProduct, {
+  const updateProductMutation = useMutation({
+    mutationFn: updateProduct,
     onSuccess: (updatedProduct) => {
-      queryClient.invalidateQueries(['products']);
+      queryClient.invalidateQueries({ queryKey: ['products'] });
       toast({ title: "تم تحديث المنتج", description: `تم تحديث ${updatedProduct.name} بنجاح.` });
       setIsModalOpen(false);
       setCurrentProduct({});
@@ -200,9 +199,10 @@ export default function ProductListPage() {
     }
   });
 
-  const deleteProductMutation = useMutation(deleteProduct, {
+  const deleteProductMutation = useMutation({
+    mutationFn: deleteProduct,
     onSuccess: (data, productId) => {
-      queryClient.invalidateQueries(['products']);
+      queryClient.invalidateQueries({ queryKey: ['products'] });
       toast({ title: "تم حذف المنتج", description: data.message });
     },
     onError: (error: Error) => {
@@ -212,7 +212,7 @@ export default function ProductListPage() {
 
 
   const openModalForAdd = () => {
-    setCurrentProduct({}); // Reset for new product
+    setCurrentProduct({}); 
     setIsModalOpen(true);
   };
 
@@ -221,7 +221,11 @@ export default function ProductListPage() {
     setIsModalOpen(true);
   };
 
-  const handleDeleteProduct = (productId: number) => {
+  const handleDeleteProduct = (productId: number | undefined) => {
+    if (productId === undefined) {
+        toast({ title: "خطأ", description: "معرف المنتج غير متوفر.", variant: "destructive"});
+        return;
+    }
     if(confirm("هل أنت متأكد أنك تريد حذف هذا المنتج؟")) {
       deleteProductMutation.mutate(productId);
     }
@@ -236,7 +240,6 @@ export default function ProductListPage() {
       toast({ title: "خطأ في التحقق", description: "اسم المنتج والباركود مطلوبان.", variant: "destructive" });
       return;
     }
-    // Basic validation for prices and quantity
     if (currentProduct.purchasePrice === undefined || currentProduct.purchasePrice < 0) {
         toast({ title: "خطأ في التحقق", description: "سعر الشراء يجب أن يكون رقمًا موجبًا.", variant: "destructive" });
         return;
@@ -249,7 +252,6 @@ export default function ProductListPage() {
         toast({ title: "خطأ في التحقق", description: "الكمية يجب أن تكون رقمًا موجبًا.", variant: "destructive" });
         return;
     }
-
 
     const productToSave: Omit<Product, 'id' | 'productId' | 'companyId' | 'isActive'> = {
       name: currentProduct.name,
@@ -266,21 +268,21 @@ export default function ProductListPage() {
       imageUrl: currentProduct.imageUrl,
     };
 
-    if (currentProduct.productId) { // Editing
+    if (currentProduct.productId) { 
       updateProductMutation.mutate({ ...productToSave, productId: currentProduct.productId } as Product);
-    } else { // Adding
+    } else { 
       addProductMutation.mutate(productToSave);
     }
   };
   
-  const isSaving = addProductMutation.isLoading || updateProductMutation.isLoading;
+  const isSaving = addProductMutation.isPending || updateProductMutation.isPending;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-3xl font-bold text-foreground">قائمة المنتجات</h1>
         <Button onClick={openModalForAdd} className="rounded-md bg-primary hover:bg-primary/90 text-primary-foreground">
-          <PlusCircle className="ml-2 h-5 w-5 icon-directional" /> إضافة منتج جديد
+          <PlusCircle className="ml-2 rtl:mr-2 h-5 w-5 icon-directional" /> إضافة منتج جديد
         </Button>
       </div>
 
@@ -353,21 +355,21 @@ export default function ProductListPage() {
                     </TableRow>
                 )}
                 {!isLoadingProducts && !isErrorProducts && products.map((product) => (
-                  <TableRow key={product.id}>
+                  <TableRow key={product.productId}> {/* استخدام productId الفريد كـ key */}
                     <TableCell className="font-medium">{product.name}</TableCell>
                     <TableCell>{product.barcode}</TableCell>
-                    <TableCell className="text-left rtl:text-right">${product.purchasePrice?.toFixed(2) ?? '0.00'}</TableCell>
-                    <TableCell className="text-left rtl:text-right">${product.salePrice?.toFixed(2) ?? '0.00'}</TableCell>
+                    <TableCell className="text-left rtl:text-right">{product.purchasePrice?.toFixed(2) ?? '٠٫٠٠'} ر.س</TableCell>
+                    <TableCell className="text-left rtl:text-right">{product.salePrice?.toFixed(2) ?? '٠٫٠٠'} ر.س</TableCell>
                     <TableCell className="text-left rtl:text-right">{product.quantity ?? 0}</TableCell>
                     <TableCell>{categories.find(c => c.categoryId === product.categoryId)?.name || product.categoryName || "غير محدد"}</TableCell>
                     <TableCell>{product.expirationDate ? new Date(product.expirationDate).toLocaleDateString('ar-EG-u-nu-latn', { year: 'numeric', month: '2-digit', day: '2-digit'}) : "لا يوجد"}</TableCell>
                     <TableCell>{product.supplier || "غير محدد"}</TableCell>
                     <TableCell className="text-center space-x-1 rtl:space-x-reverse">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md" onClick={() => openModalForEdit(product)} disabled={deleteProductMutation.isLoading || isSaving}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md" onClick={() => openModalForEdit(product)} disabled={deleteProductMutation.isPending || isSaving}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/80 rounded-md" onClick={() => handleDeleteProduct(product.productId)} disabled={deleteProductMutation.isLoading || product.productId === undefined || isSaving}>
-                         {deleteProductMutation.isLoading && deleteProductMutation.variables === product.productId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/80 rounded-md" onClick={() => handleDeleteProduct(product.productId)} disabled={deleteProductMutation.isPending || product.productId === undefined || isSaving}>
+                         {deleteProductMutation.isPending && deleteProductMutation.variables === product.productId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -379,7 +381,7 @@ export default function ProductListPage() {
       </Card>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-lg rounded-lg">
+        <DialogContent className="sm:max-w-lg rounded-lg" dir="rtl">
           <DialogHeader>
             <DialogTitle>{currentProduct.productId ? "تعديل المنتج" : "إضافة منتج جديد"}</DialogTitle>
             <DialogDescription>
@@ -397,7 +399,7 @@ export default function ProductListPage() {
               <Button variant="outline" className="rounded-md" disabled={isSaving}>إلغاء</Button>
             </DialogClose>
             <Button onClick={handleSaveProduct} className="rounded-md bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSaving}>
-              {isSaving ? <Loader2 className="ml-2 h-4 w-4 animate-spin icon-directional" /> : null}
+              {isSaving ? <Loader2 className="ml-2 rtl:mr-2 h-4 w-4 animate-spin icon-directional" /> : null}
               {isSaving ? (currentProduct.productId ? "جاري التحديث..." : "جاري الإضافة...") : "حفظ المنتج"}
             </Button>
           </DialogFooter>
@@ -406,4 +408,3 @@ export default function ProductListPage() {
     </div>
   );
 }
-

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -19,18 +20,18 @@ interface CartItem {
   barcode?: string;
 }
 
-// Mock product data - in a real app, this would come from a database/API
+// بيانات منتجات وهمية - في تطبيق حقيقي، ستأتي هذه من قاعدة بيانات/API
 const mockProducts: CartItem[] = [
-  { id: "prod_1", name: "تفاح عضوي (1 كجم)", price: 3.99, quantity: 0, barcode: "123456789012" },
+  { id: "prod_1", name: "تفاح عضوي (١ كجم)", price: 3.99, quantity: 0, barcode: "123456789012" },
   { id: "prod_2", name: "رغيف خبز قمح كامل", price: 2.49, quantity: 0, barcode: "987654321098" },
-  { id: "prod_3", name: "حليب طازج (1 لتر)", price: 1.50, quantity: 0, barcode: "112233445566" },
-  { id: "prod_4", name: "جبنة شيدر (250 جم)", price: 4.20, quantity: 0, barcode: "665544332211" },
+  { id: "prod_3", name: "حليب طازج (١ لتر)", price: 1.50, quantity: 0, barcode: "112233445566" },
+  { id: "prod_4", name: "جبنة شيدر (٢٥٠ جم)", price: 4.20, quantity: 0, barcode: "665544332211" },
 ];
 
 export default function PointOfSalePage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [barcode, setBarcode] = useState("");
-  const [customer, setCustomer] = useState("عميل عابر"); // Walk-in Customer
+  const [customer, setCustomer] = useState("عميل عابر"); 
   const [discountPercent, setDiscountPercent] = useState(0);
   const { toast } = useToast();
 
@@ -101,11 +102,11 @@ export default function PointOfSalePage() {
                   />
                 </div>
                 <Button type="submit" className="rounded-md bg-primary hover:bg-primary/90 text-primary-foreground">
-                  <ScanLine className="ml-2 h-5 w-5 icon-directional" /> إضافة
+                  <ScanLine className="ml-2 rtl:mr-2 h-5 w-5 icon-directional" /> إضافة
                 </Button>
               </form>
               <Button variant="outline" className="w-full rounded-md">
-                <PlusCircle className="ml-2 h-5 w-5 icon-directional" /> تصفح المنتجات / إضافة يدوية
+                <PlusCircle className="ml-2 rtl:mr-2 h-5 w-5 icon-directional" /> تصفح المنتجات / إضافة يدوية
               </Button>
             </CardContent>
           </Card>
@@ -118,7 +119,7 @@ export default function PointOfSalePage() {
               </div>
               {cart.length > 0 && (
                 <Button variant="outline" size="sm" onClick={clearCart} className="text-destructive hover:bg-destructive/10 border-destructive/50 hover:text-destructive rounded-md">
-                  <XCircle className="ml-2 h-4 w-4 icon-directional" /> إفراغ السلة
+                  <XCircle className="ml-2 rtl:mr-2 h-4 w-4 icon-directional" /> إفراغ السلة
                 </Button>
               )}
             </CardHeader>
@@ -132,8 +133,8 @@ export default function PointOfSalePage() {
                       <TableRow>
                         <TableHead>المنتج</TableHead>
                         <TableHead className="text-center w-32">الكمية</TableHead>
-                        <TableHead className="text-left rtl:text-right">السعر</TableHead>
-                        <TableHead className="text-left rtl:text-right">الإجمالي</TableHead>
+                        <TableHead className="text-right rtl:text-left">السعر</TableHead>
+                        <TableHead className="text-right rtl:text-left">الإجمالي</TableHead>
                         <TableHead className="text-center">إجراءات</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -148,8 +149,8 @@ export default function PointOfSalePage() {
                               <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md" onClick={() => updateQuantity(item.id, 1)}><PlusCircle className="h-4 w-4" /></Button>
                             </div>
                           </TableCell>
-                          <TableCell className="text-left rtl:text-right">${item.price.toFixed(2)}</TableCell>
-                          <TableCell className="text-left rtl:text-right">${(item.price * item.quantity).toFixed(2)}</TableCell>
+                          <TableCell className="text-right rtl:text-left">{item.price.toFixed(2)} ر.س</TableCell>
+                          <TableCell className="text-right rtl:text-left">{(item.price * item.quantity).toFixed(2)} ر.س</TableCell>
                           <TableCell className="text-center">
                             <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/80 rounded-md" onClick={() => removeFromCart(item.id)}><Trash2 className="h-4 w-4" /></Button>
                           </TableCell>
@@ -171,7 +172,7 @@ export default function PointOfSalePage() {
             <CardContent className="space-y-4">
               <div>
                 <Label htmlFor="customer" className="mb-1 block">العميل</Label>
-                <Select value={customer} onValueChange={setCustomer}>
+                <Select value={customer} onValueChange={setCustomer} dir="rtl">
                   <SelectTrigger id="customer" className="rounded-md"><SelectValue placeholder="اختر العميل" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="عميل عابر">عميل عابر</SelectItem>
@@ -186,17 +187,17 @@ export default function PointOfSalePage() {
                   <Input
                     id="discount" type="number" value={discountPercent}
                     onChange={(e) => setDiscountPercent(Math.max(0, Math.min(100, Number(e.target.value))))}
-                    placeholder="0" className="rounded-md" min="0" max="100"
+                    placeholder="٠" className="rounded-md" min="0" max="100"
                   />
                   <Percent className="mr-2 rtl:ml-2 h-5 w-5 text-muted-foreground icon-directional" />
                 </div>
               </div>
               <Separator />
               <div className="space-y-1 text-sm">
-                <div className="flex justify-between"><span>المجموع الفرعي:</span><span>${subtotal.toFixed(2)}</span></div>
-                <div className="flex justify-between"><span>الخصم ({discountPercent}%):</span><span className="text-destructive">-${discountAmount.toFixed(2)}</span></div>
+                <div className="flex justify-between"><span>المجموع الفرعي:</span><span>{subtotal.toFixed(2)} ر.س</span></div>
+                <div className="flex justify-between"><span>الخصم ({discountPercent}%):</span><span className="text-destructive">-{discountAmount.toFixed(2)} ر.س</span></div>
                 <Separator/>
-                <div className="flex justify-between font-bold text-lg text-primary"><span>الإجمالي:</span><span>${totalAmount.toFixed(2)}</span></div>
+                <div className="flex justify-between font-bold text-lg text-primary"><span>الإجمالي:</span><span>{totalAmount.toFixed(2)} ر.س</span></div>
               </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-2">
@@ -204,7 +205,7 @@ export default function PointOfSalePage() {
                 معالجة الدفع
               </Button>
               <Button variant="outline" size="lg" className="w-full rounded-md">
-                <FileText className="ml-2 h-5 w-5 icon-directional" /> حفظ كمسودة
+                <FileText className="ml-2 rtl:mr-2 h-5 w-5 icon-directional" /> حفظ كمسودة
               </Button>
             </CardFooter>
           </Card>

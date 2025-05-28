@@ -46,13 +46,14 @@ export default function LoginPage() {
         body: JSON.stringify(data),
       });
 
-      const result = await response.json();      if (response.ok && result.user) {
+      const result = await response.json();
+      if (response.ok && result.user) {
         authLogin(result.token, result.user);
         toast({
           title: 'تم تسجيل الدخول بنجاح',
           description: `مرحباً بعودتك، ${result.user.firstName || result.user.username}!`,
         });
-        router.push('/dashboard');
+        router.push('/dashboard'); // توجيه إلى لوحة التحكم
       } else {
         toast({
           title: 'فشل تسجيل الدخول',
@@ -61,7 +62,7 @@ export default function LoginPage() {
         });
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('خطأ في تسجيل الدخول:', error);
       toast({
         title: 'خطأ في الاتصال',
         description: 'لم نتمكن من معالجة طلبك. يرجى المحاولة مرة أخرى.',
@@ -88,7 +89,7 @@ export default function LoginPage() {
             <AppLogoIcon className="h-16 w-16 text-primary mb-3" />
             <CardTitle className="text-3xl font-bold text-primary">محاسبي</CardTitle>
             <CardDescription className="text-muted-foreground mt-2 text-md">
-              نظام محاسبي متكامل مقدم من مجموعة الوسيط جروب.
+              نظام محاسبي متكامل من مجموعة الوسيط جروب.
               <br />
               يرجى تسجيل الدخول للمتابعة.
             </CardDescription>
@@ -99,12 +100,12 @@ export default function LoginPage() {
             <div className="space-y-2">
               <Label htmlFor="username" className="text-md font-medium text-foreground">اسم المستخدم</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground icon-directional" />
+                <Mail className="absolute left-3 rtl:right-3 rtl:left-auto top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground icon-directional" />
                 <Input
                   id="username"
                   type="text"
                   placeholder="ادخل اسم المستخدم الخاص بك"
-                  className="pl-10 pr-3 py-3 text-md rounded-lg border-border/60 focus:border-primary focus:ring-primary"
+                  className="pl-10 rtl:pr-10 rtl:pl-3 pr-3 py-3 text-md rounded-lg border-border/60 focus:border-primary focus:ring-primary"
                   {...form.register('username')}
                 />
               </div>
@@ -120,12 +121,12 @@ export default function LoginPage() {
                 </Link>
               </div>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground icon-directional" />
+                <Lock className="absolute left-3 rtl:right-3 rtl:left-auto top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground icon-directional" />
                 <Input
                   id="password"
                   type="password"
                   placeholder="ادخل كلمة المرور"
-                  className="pl-10 pr-3 py-3 text-md rounded-lg border-border/60 focus:border-primary focus:ring-primary"
+                  className="pl-10 rtl:pr-10 rtl:pl-3 pr-3 py-3 text-md rounded-lg border-border/60 focus:border-primary focus:ring-primary"
                   {...form.register('password')}
                 />
               </div>
@@ -135,9 +136,9 @@ export default function LoginPage() {
             </div>
             <Button type="submit" className="w-full text-lg py-3.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSubmitting}>
               {isSubmitting ? (
-                <Loader2 className="ml-2 h-5 w-5 animate-spin icon-directional" />
+                <Loader2 className="ml-2 rtl:mr-2 h-5 w-5 animate-spin icon-directional" />
               ) : (
-                <LogIn className="ml-2 h-5 w-5 icon-directional" />
+                <LogIn className="ml-2 rtl:mr-2 h-5 w-5 icon-directional" />
               )}
               تسجيل الدخول
             </Button>

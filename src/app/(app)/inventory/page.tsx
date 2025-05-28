@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Archive } from "lucide-react";
 
@@ -8,7 +9,7 @@ export default function InventoryPage() {
       <Card className="shadow-lg rounded-lg border-border">
         <CardHeader>
           <CardTitle className="flex items-center">
-            <Archive className="ml-3 h-7 w-7 text-primary icon-directional" />
+            <Archive className="ml-3 rtl:mr-3 h-7 w-7 text-primary icon-directional" />
             نظرة عامة على المخزون
           </CardTitle>
           <CardDescription>
