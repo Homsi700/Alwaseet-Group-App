@@ -1,36 +1,44 @@
 @echo off
+echo.
 echo Starting Alwaseet Group App Dependency Installation...
+echo ======================================================
 echo.
 
 REM Check for Node.js and npm
 echo Checking for Node.js and npm...
-npm --version >nul 2>&1
-if %errorlevel% neq 0 (
-    echo ERROR: npm (Node.js) is not installed or not found in PATH.
-    echo Please install Node.js (which includes npm) from https://nodejs.org/ and try again.
-    goto :eof
-) else (
-    echo npm found.
+npm -v >nul 2>&1
+if errorlevel 1 (
+    echo ERROR: npm (Node Package Manager) is not found. Please install Node.js and npm.
+    echo Visit https://nodejs.org/ to download and install Node.js.
+    echo.
+    pause
+    exit /b 1
 )
+echo Node.js and npm found.
 echo.
 
 REM Install Node.js dependencies
-echo Installing Node.js dependencies...
+echo Installing Node.js dependencies (npm install)...
 npm install
-if %errorlevel% neq 0 (
-    echo ERROR: Failed to install Node.js dependencies. See messages above.
-    goto :eof
-) else (
-    echo Node.js dependencies installed successfully.
+if errorlevel 1 (
+    echo.
+    echo ERROR: Failed to install Node.js dependencies using 'npm install'.
+    echo Please check the error messages above for more details.
+    echo Common issues:
+    echo   - Network connectivity problems.
+    echo   - Incorrect package versions in package.json (check for ETARGET errors).
+    echo   - Missing system dependencies for native modules (less likely now that Python bridge is removed).
+    echo.
+    pause
+    exit /b 1
 )
+echo Node.js dependencies installed successfully.
 echo.
 
-echo ========================================================================
-echo Dependency installation finished.
-echo You can now try to run the project using run_project.bat
-echo IMPORTANT: Ensure your .env.local file is created and configured
-echo with your SQL Server connection details and JWT_SECRET.
-echo ========================================================================
-
-:eof
+echo ======================================================
+echo Dependency installation process finished.
+echo Please review any messages above for errors or warnings.
+echo Press any key to close this window.
+echo.
 pause
+exit /b 0
