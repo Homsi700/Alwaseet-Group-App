@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
-import { sql, executeQuery } from '../lib/db.ts'; // أو '../lib/db.ts'
+import sql from 'mssql';
+import { executeQuery } from '../lib/db';
 
 async function testConnection() {
     try {
