@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { AlertTriangle, CheckCircle, Download, Upload } from "lucide-react"; // Changed AlertCircle to AlertTriangle for warning
+import { AlertTriangle, CheckCircle, Download, Upload } from "lucide-react"; 
 import { useToast } from "@/hooks/use-toast";
 import React, { useState, useRef } from "react";
 
@@ -18,10 +19,8 @@ export default function BackupRestorePage() {
 
   const handleBackup = async () => {
     setIsBackingUp(true);
-    // Simulate backup process
     await new Promise(resolve => setTimeout(resolve, 1500));
     
-    // Simulate file download
     const dummyContent = "This is a dummy backup file for Al Wasit Accounting.";
     const blob = new Blob([dummyContent], { type: "application/zip" });
     const url = URL.createObjectURL(blob);
@@ -72,7 +71,6 @@ export default function BackupRestorePage() {
     }
 
     setIsRestoring(true);
-    // Simulate restore process
     await new Promise(resolve => setTimeout(resolve, 2500));
     toast({
       title: "نجحت الاستعادة",
@@ -92,7 +90,7 @@ export default function BackupRestorePage() {
       
       <Card className="shadow-lg rounded-lg border-border">
         <CardHeader>
-          <CardTitle className="flex items-center"><Download className="ml-2 h-6 w-6 text-primary icon-directional" /> نسخ البيانات احتياطياً</CardTitle>
+          <CardTitle className="flex items-center"><Download className="ml-2 rtl:mr-2 h-6 w-6 text-primary icon-directional" /> نسخ البيانات احتياطياً</CardTitle>
           <CardDescription>
             قم بإنشاء نسخة احتياطية من بيانات التطبيق الخاصة بك. سيؤدي هذا إلى إنشاء ملف مضغوط بامتداد .zip
             يحتوي على جميع معلوماتك الهامة. قم بتخزين هذا الملف في مكان آمن.
@@ -105,7 +103,7 @@ export default function BackupRestorePage() {
         </CardContent>
         <CardFooter>
           <Button onClick={handleBackup} disabled={isBackingUp} className="w-full sm:w-auto rounded-md bg-primary hover:bg-primary/90 text-primary-foreground">
-            <Download className="ml-2 h-4 w-4 icon-directional" /> {isBackingUp ? "جاري النسخ الاحتياطي..." : "نسخ البيانات إلى ملف"}
+            <Download className="ml-2 rtl:mr-2 h-4 w-4 icon-directional" /> {isBackingUp ? "جاري النسخ الاحتياطي..." : "نسخ البيانات إلى ملف"}
           </Button>
         </CardFooter>
       </Card>
@@ -114,7 +112,7 @@ export default function BackupRestorePage() {
 
       <Card className="shadow-lg rounded-lg border-border">
         <CardHeader>
-          <CardTitle className="flex items-center"><Upload className="ml-2 h-6 w-6 text-accent icon-directional" /> استعادة البيانات</CardTitle>
+          <CardTitle className="flex items-center"><Upload className="ml-2 rtl:mr-2 h-6 w-6 text-accent icon-directional" /> استعادة البيانات</CardTitle>
           <CardDescription>
             استعد بيانات التطبيق الخاصة بك من ملف نسخ احتياطي تم إنشاؤه مسبقًا (.zip).
           </CardDescription>
@@ -142,7 +140,7 @@ export default function BackupRestorePage() {
         </CardContent>
         <CardFooter>
           <Button onClick={handleRestore} disabled={!backupFile || isRestoring} className="w-full sm:w-auto rounded-md bg-accent hover:bg-accent/90 text-accent-foreground">
-            <Upload className="ml-2 h-4 w-4 icon-directional" /> {isRestoring ? "جاري الاستعادة..." : "استعادة البيانات من ملف"}
+            <Upload className="ml-2 rtl:mr-2 h-4 w-4 icon-directional" /> {isRestoring ? "جاري الاستعادة..." : "استعادة البيانات من ملف"}
           </Button>
         </CardFooter>
       </Card>

@@ -13,11 +13,12 @@ interface Kpi {
   description?: string;
 }
 
+// تم تحديث البيانات لتكون باللغة العربية
 const kpis: Kpi[] = [
-  { title: "إجمالي الإيرادات", value: "$125,670", icon: DollarSign, change: "+5.2% هذا الشهر", changeType: 'positive', description: "الإيرادات المتولدة من جميع المبيعات" },
-  { title: "إجمالي المبيعات", value: "1,280", icon: ShoppingCart, change: "+8.1% هذا الشهر", changeType: 'positive', description: "عدد معاملات البيع" },
-  { title: "العملاء النشطون", value: "350", icon: Users, change: "-1.5% هذا الشهر", changeType: 'negative', description: "العملاء ذوو النشاط الأخير" },
-  { title: "المنتجات في المخزن", value: "2,400", icon: Package, change: "+200 وحدة", changeType: 'positive', description: "إجمالي كمية المنتجات المتاحة" },
+  { title: "إجمالي الإيرادات", value: "١٢٥٬٦٧٠ ر.س", icon: DollarSign, change: "+٥.٢٪ هذا الشهر", changeType: 'positive', description: "الإيرادات المتولدة من جميع المبيعات" },
+  { title: "إجمالي المبيعات", value: "١٬٢٨٠", icon: ShoppingCart, change: "+٨.١٪ هذا الشهر", changeType: 'positive', description: "عدد معاملات البيع" },
+  { title: "العملاء النشطون", value: "٣٥٠", icon: Users, change: "-١.٥٪ هذا الشهر", changeType: 'negative', description: "العملاء ذوو النشاط الأخير" },
+  { title: "المنتجات في المخزن", value: "٢٬٤٠٠", icon: Package, change: "+٢٠٠ وحدة", changeType: 'positive', description: "إجمالي كمية المنتجات المتاحة" },
 ];
 
 export default function DashboardPage() {
@@ -25,7 +26,7 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <header className="mb-8">
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
-          لوحة تحكم نظام محاسبي
+          لوحة تحكم محاسبي
         </h1>
         <p className="text-lg text-muted-foreground mt-1">
           مرحباً بعودتك! إليك نظرة عامة على عملك.
@@ -58,7 +59,7 @@ export default function DashboardPage() {
         <h2 id="quick-access-title" className="text-2xl font-semibold mb-4 text-foreground">وصول سريع</h2>
         <div className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {dashboardQuickAccessItems.map(item => (
-            item.description && (
+            item.description && ( // التأكد من وجود الوصف قبل عرض البطاقة
               <IconCard
                 key={item.href}
                 title={item.title}
@@ -75,7 +76,7 @@ export default function DashboardPage() {
         <h2 id="modules-title" className="text-2xl font-semibold mb-4 text-foreground">الوحدات النمطية</h2>
         <div className="grid gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {dashboardGridItems.map(item => (
-             item.description && (
+             item.description && ( // التأكد من وجود الوصف قبل عرض البطاقة
               <IconCard
                 key={item.href}
                 title={item.title}

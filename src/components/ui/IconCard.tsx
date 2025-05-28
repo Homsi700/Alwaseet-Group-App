@@ -1,9 +1,11 @@
+
 import Link from 'next/link';
 import type { LucideIcon } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/providers/LanguageProvider';
 
 interface IconCardProps {
   title: string;
@@ -14,6 +16,9 @@ interface IconCardProps {
 }
 
 export function IconCard({ title, description, icon: Icon, href, className }: IconCardProps) {
+  const { locale } = useLanguage();
+  const buttonText = locale === 'ar' ? `الذهاب إلى ${title}` : `Go to ${title}`;
+
   return (
     <Link href={href} passHref legacyBehavior>
       <a className="block hover:no-underline h-full">
@@ -35,8 +40,8 @@ export function IconCard({ title, description, icon: Icon, href, className }: Ic
           </CardContent>
           <div className="p-5 pt-2 mt-auto">
              <Button variant="outline" className="w-full group/button border-primary/30 text-primary hover:bg-primary/5 hover:text-primary hover:border-primary focus-visible:ring-primary">
-              Go to {title}
-              <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/button:translate-x-1 rtl:group-hover/button:-translate-x-1 icon-directional" />
+              {buttonText}
+              <ArrowRight className="ml-2 rtl:mr-2 h-4 w-4 transition-transform group-hover/button:translate-x-1 rtl:group-hover/button:-translate-x-1 icon-directional" />
             </Button>
           </div>
         </Card>

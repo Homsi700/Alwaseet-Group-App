@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Settings as SettingsIcon } from "lucide-react"; // Renamed to avoid conflict
 
@@ -8,7 +9,7 @@ export default function SettingsPage() {
       <Card className="shadow-lg rounded-lg border-border">
         <CardHeader>
           <CardTitle className="flex items-center">
-            <SettingsIcon className="ml-3 h-7 w-7 text-primary icon-directional" />
+            <SettingsIcon className="ml-3 rtl:mr-3 h-7 w-7 text-primary icon-directional" />
             نظرة عامة على الإعدادات
           </CardTitle>
           <CardDescription>

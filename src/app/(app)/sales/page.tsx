@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { TrendingUp } from "lucide-react";
 
@@ -8,7 +9,7 @@ export default function SalesPage() {
       <Card className="shadow-lg rounded-lg border-border">
         <CardHeader>
           <CardTitle className="flex items-center">
-            <TrendingUp className="ml-3 h-7 w-7 text-primary icon-directional" />
+            <TrendingUp className="ml-3 rtl:mr-3 h-7 w-7 text-primary icon-directional" />
             نظرة عامة على المبيعات
           </CardTitle>
           <CardDescription>

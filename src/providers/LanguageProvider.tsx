@@ -16,16 +16,11 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>('ar'); // Default to Arabic
-  const [direction, setDirection] = useState<Direction>('rtl'); // Default to RTL
+  const [locale, setLocaleState] = useState<Locale>('ar'); // الافتراضي هو العربية
+  const [direction, setDirection] = useState<Direction>('rtl'); // الافتراضي هو من اليمين لليسار
 
-  useEffect(() => {
-    const storedLang = localStorage.getItem('alwasit-lang') as Locale | null;
-    // If 'en' is stored, use it. Otherwise, default to 'ar'.
-    const currentLang = storedLang === 'en' ? 'en' : 'ar'; 
-    
-    setLocaleState(currentLang);
-    if (currentLang === 'ar') {
+  const updateDocumentAttributes = (currentLocale: Locale) => {
+    if (currentLocale === 'ar') {
       setDirection('rtl');
       document.documentElement.lang = 'ar';
       document.documentElement.dir = 'rtl';
@@ -34,20 +29,20 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       document.documentElement.lang = 'en';
       document.documentElement.dir = 'ltr';
     }
+  };
+  
+  useEffect(() => {
+    // هذه الدالة ستُنفذ فقط على العميل
+    const storedLang = localStorage.getItem('alwasit-lang') as Locale | null;
+    const initialLang = storedLang || 'ar'; // إذا لم يكن هناك تفضيل مخزن، استخدم العربية
+    setLocaleState(initialLang);
+    updateDocumentAttributes(initialLang);
   }, []);
 
   const setLocale = useCallback((newLocale: Locale) => {
     setLocaleState(newLocale);
     localStorage.setItem('alwasit-lang', newLocale);
-    if (newLocale === 'ar') {
-      setDirection('rtl');
-      document.documentElement.lang = 'ar';
-      document.documentElement.dir = 'rtl';
-    } else {
-      setDirection('ltr');
-      document.documentElement.lang = 'en';
-      document.documentElement.dir = 'ltr';
-    }
+    updateDocumentAttributes(newLocale);
   }, []);
   
   const toggleLocale = useCallback(() => {

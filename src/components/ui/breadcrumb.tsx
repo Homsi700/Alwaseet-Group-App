@@ -1,10 +1,12 @@
+
 "use client"
 
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
-import { ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight } from "lucide-react" // استيراد كلا الأيقونتين
 
 import { cn } from "@/lib/utils"
+import { useLanguage } from "@/providers/LanguageProvider"
 
 const Breadcrumb = React.forwardRef<
   HTMLElement,
@@ -77,17 +79,22 @@ BreadcrumbPage.displayName = "BreadcrumbPage"
 const BreadcrumbSeparator = React.forwardRef<
   HTMLLIElement,
   React.ComponentPropsWithoutRef<"li">
->(({ children, className, ...props }, ref) => (
-  <li
-    ref={ref}
-    role="presentation"
-    aria-hidden="true"
-    className={cn("[&>svg]:size-3.5", className)}
-    {...props}
-  >
-    {children ?? <ChevronRight className="icon-directional" />}
-  </li>
-))
+>(({ children, className, ...props }, ref) => {
+  const { direction } = useLanguage();
+  const SeparatorIcon = direction === 'rtl' ? ChevronLeft : ChevronRight; // اختيار الأيقونة بناءً على الاتجاه
+
+  return (
+    <li
+      ref={ref}
+      role="presentation"
+      aria-hidden="true"
+      className={cn("[&>svg]:size-3.5", className)}
+      {...props}
+    >
+      {children ?? <SeparatorIcon />} {/* استخدام الأيقونة المحددة */}
+    </li>
+  )
+})
 BreadcrumbSeparator.displayName = "BreadcrumbSeparator"
 
 const BreadcrumbEllipsis = React.forwardRef<
@@ -107,7 +114,7 @@ const BreadcrumbEllipsis = React.forwardRef<
 ))
 BreadcrumbEllipsis.displayName = "BreadcrumbElipssis"
 
-// Minimal MoreHorizontal icon for BreadcrumbEllipsis
+// أيقونة MoreHorizontal بسيطة لـ BreadcrumbEllipsis
 const MoreHorizontal = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"

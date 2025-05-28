@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ShoppingBag } from "lucide-react";
 
@@ -8,7 +9,7 @@ export default function PurchasesPage() {
       <Card className="shadow-lg rounded-lg border-border">
         <CardHeader>
           <CardTitle className="flex items-center">
-            <ShoppingBag className="ml-3 h-7 w-7 text-primary icon-directional" />
+            <ShoppingBag className="ml-3 rtl:mr-3 h-7 w-7 text-primary icon-directional" />
             نظرة عامة على المشتريات
           </CardTitle>
           <CardDescription>
