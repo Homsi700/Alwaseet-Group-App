@@ -1,0 +1,275 @@
+ تم الاتصال بقاعدة البيانات بنجاح!
+
+# معلومات الاتصال بقاعدة البيانات
+SERVER_NAME = r'DESKTOP-0QOGPV9\SQLEXPRESS'
+DATABASE_NAME = 'AlwaseetGroup'
+USERNAME = 'sa'
+PASSWORD = '700210'
+--- فهم هيكل قاعدة البيانات ---
+
+## أسماء الجداول:
+- accounting.JournalEntryDetails
+- dbo.Users
+- settings.Companies
+- settings.Users
+- inventory.Categories
+- inventory.Products
+- sales.Customers
+- sales.Invoices
+- sales.InvoiceItems
+- accounting.ChartOfAccounts
+- accounting.JournalEntries
+
+## أسماء الأعمدة لكل جدول:
+
+### أعمدة الجدول: JournalEntryDetails
+  - EntryDetailId (int)
+  - EntryId (int)
+  - AccountId (int)
+  - DebitAmount (decimal)
+  - CreditAmount (decimal)
+  - Notes (nvarchar, طول أقصى: 500)
+
+### أعمدة الجدول: Users
+  - Id (int)
+  - Username (nvarchar, طول أقصى: 50)
+  - HashedPassword (nvarchar, طول أقصى: 256)
+  - Email (nvarchar, طول أقصى: 100)
+
+### أعمدة الجدول: Companies
+  - CompanyId (int)
+  - Name (nvarchar, طول أقصى: 255)
+  - TaxNumber (nvarchar, طول أقصى: 50)
+  - Address (nvarchar, طول أقصى: 500)
+  - PhoneNumber (nvarchar, طول أقصى: 50)
+  - Email (nvarchar, طول أقصى: 255)
+  - CurrencyCode (nvarchar, طول أقصى: 10)
+  - CurrencySymbol (nvarchar, طول أقصى: 10)
+  - Logo (varbinary, طول أقصى: -1)
+  - CreatedAt (datetime2)
+  - UpdatedAt (datetime2)
+  - IsActive (bit)
+
+### أعمدة الجدول: Users
+  - UserId (int)
+  - Username (nvarchar, طول أقصى: 50)
+  - PasswordHash (nvarchar, طول أقصى: 255)
+  - FirstName (nvarchar, طول أقصى: 50)
+  - LastName (nvarchar, طول أقصى: 50)
+  - Email (nvarchar, طول أقصى: 255)
+  - Role (nvarchar, طول أقصى: 50)
+  - CompanyId (int)
+  - CreatedAt (datetime2)
+  - UpdatedAt (datetime2)
+  - LastLogin (datetime2)
+  - IsActive (bit)
+
+### أعمدة الجدول: Categories
+  - CategoryId (int)
+  - Name (nvarchar, طول أقصى: 255)
+  - Description (nvarchar, طول أقصى: 500)
+  - ParentCategoryId (int)
+  - CompanyId (int)
+  - CreatedAt (datetime2)
+  - UpdatedAt (datetime2)
+  - CreatedBy (int)
+  - IsActive (bit)
+
+### أعمدة الجدول: Products
+  - ProductId (int)
+  - Name (nvarchar, طول أقصى: 255)
+  - Barcode (nvarchar, طول أقصى: 100)
+  - Description (nvarchar, طول أقصى: -1)
+  - CategoryId (int)
+  - PurchasePrice (decimal)
+  - SalePrice (decimal)
+  - Quantity (decimal)
+  - UnitOfMeasure (nvarchar, طول أقصى: 50)
+  - MinimumQuantity (decimal)
+  - ImageUrl (nvarchar, طول أقصى: -1)
+  - CompanyId (int)
+  - CreatedAt (datetime2)
+  - UpdatedAt (datetime2)
+  - CreatedBy (int)
+  - IsActive (bit)
+
+### أعمدة الجدول: Customers
+  - CustomerId (int)
+  - Name (nvarchar, طول أقصى: 255)
+  - ContactPerson (nvarchar, طول أقصى: 255)
+  - PhoneNumber (nvarchar, طول أقصى: 50)
+  - Email (nvarchar, طول أقصى: 255)
+  - Address (nvarchar, طول أقصى: 500)
+  - TaxNumber (nvarchar, طول أقصى: 50)
+  - CreditLimit (decimal)
+  - Balance (decimal)
+  - CompanyId (int)
+  - CreatedAt (datetime2)
+  - UpdatedAt (datetime2)
+  - CreatedBy (int)
+  - IsActive (bit)
+
+### أعمدة الجدول: Invoices
+  - InvoiceId (int)
+  - InvoiceNumber (nvarchar, طول أقصى: 50)
+  - InvoiceDate (datetime2)
+  - CustomerId (int)
+  - PaymentMethod (nvarchar, طول أقصى: 50)
+  - SubTotal (decimal)
+  - DiscountPercent (decimal)
+  - DiscountAmount (decimal)
+  - TaxPercent (decimal)
+  - TaxAmount (decimal)
+  - TotalAmount (decimal)
+  - AmountPaid (decimal)
+  - AmountDue (decimal)
+  - Status (nvarchar, طول أقصى: 50)
+  - Notes (nvarchar, طول أقصى: -1)
+  - CompanyId (int)
+  - CreatedAt (datetime2)
+  - UpdatedAt (datetime2)
+  - CreatedBy (int)
+
+### أعمدة الجدول: InvoiceItems
+  - InvoiceItemId (int)
+  - InvoiceId (int)
+  - ProductId (int)
+  - Quantity (decimal)
+  - UnitPrice (decimal)
+  - DiscountPercent (decimal)
+  - DiscountAmount (decimal)
+  - TaxPercent (decimal)
+  - TaxAmount (decimal)
+  - LineTotal (decimal)
+
+### أعمدة الجدول: ChartOfAccounts
+  - AccountId (int)
+  - AccountCode (nvarchar, طول أقصى: 50)
+  - AccountName (nvarchar, طول أقصى: 255)
+  - AccountType (nvarchar, طول أقصى: 50)
+  - ParentAccountId (int)
+  - Balance (decimal)
+  - CompanyId (int)
+  - CreatedAt (datetime2)
+  - UpdatedAt (datetime2)
+  - CreatedBy (int)
+  - IsActive (bit)
+
+### أعمدة الجدول: JournalEntries
+  - EntryId (int)
+  - EntryNumber (nvarchar, طول أقصى: 50)
+  - EntryDate (datetime2)
+  - Description (nvarchar, طول أقصى: 500)
+  - ReferenceType (nvarchar, طول أقصى: 50)
+  - ReferenceId (nvarchar, طول أقصى: 50)
+  - CompanyId (int)
+  - CreatedAt (datetime2)
+  - UpdatedAt (datetime2)
+  - CreatedBy (int)
+  - IsPosted (bit)
+
+## العلاقات بين الجداول (المفاتيح الأجنبية):
+- المفتاح الأجنبي: FK__ChartOfAc__Compa__797309D9
+  الجدول الأجنبي: accounting.ChartOfAccounts, العمود: CompanyId
+  الجدول الرئيسي: settings.Companies, العمود: CompanyId
+------------------------------
+- المفتاح الأجنبي: FK__ChartOfAc__Creat__7B5B524B
+  الجدول الأجنبي: accounting.ChartOfAccounts, العمود: CreatedBy
+  الجدول الرئيسي: settings.Users, العمود: UserId
+------------------------------
+- المفتاح الأجنبي: FK__ChartOfAc__Paren__778AC167
+  الجدول الأجنبي: accounting.ChartOfAccounts, العمود: ParentAccountId        
+  الجدول الرئيسي: accounting.ChartOfAccounts, العمود: AccountId
+------------------------------
+- المفتاح الأجنبي: FK__JournalEn__Accou__06CD04F7
+  الجدول الأجنبي: accounting.JournalEntryDetails, العمود: AccountId
+  الجدول الرئيسي: accounting.ChartOfAccounts, العمود: AccountId
+------------------------------
+- المفتاح الأجنبي: FK__JournalEn__Compa__00200768
+  الجدول الأجنبي: accounting.JournalEntries, العمود: CompanyId
+  الجدول الرئيسي: settings.Companies, العمود: CompanyId
+------------------------------
+- المفتاح الأجنبي: FK__JournalEn__Creat__02084FDA
+  الجدول الأجنبي: accounting.JournalEntries, العمود: CreatedBy
+  الجدول الرئيسي: settings.Users, العمود: UserId
+------------------------------
+- المفتاح الأجنبي: FK__JournalEn__Entry__05D8E0BE
+  الجدول الأجنبي: accounting.JournalEntryDetails, العمود: EntryId
+  الجدول الرئيسي: accounting.JournalEntries, العمود: EntryId
+------------------------------
+- المفتاح الأجنبي: FK__Categorie__Compa__5629CD9C
+  الجدول الأجنبي: inventory.Categories, العمود: CompanyId
+  الجدول الرئيسي: settings.Companies, العمود: CompanyId
+------------------------------
+- المفتاح الأجنبي: FK__Categorie__Creat__5812160E
+  الجدول الأجنبي: inventory.Categories, العمود: CreatedBy
+  الجدول الرئيسي: settings.Users, العمود: UserId
+------------------------------
+- المفتاح الأجنبي: FK__Categorie__Paren__5535A963
+  الجدول الأجنبي: inventory.Categories, العمود: ParentCategoryId
+  الجدول الرئيسي: inventory.Categories, العمود: CategoryId
+------------------------------
+- المفتاح الأجنبي: FK__Products__Catego__5CD6CB2B
+  الجدول الأجنبي: inventory.Products, العمود: CategoryId
+  الجدول الرئيسي: inventory.Categories, العمود: CategoryId
+------------------------------
+- المفتاح الأجنبي: FK__Products__Compan__5EBF139D
+  الجدول الأجنبي: inventory.Products, العمود: CompanyId
+  الجدول الرئيسي: settings.Companies, العمود: CompanyId
+------------------------------
+- المفتاح الأجنبي: FK__Products__Create__60A75C0F
+  الجدول الأجنبي: inventory.Products, العمود: CreatedBy
+  الجدول الرئيسي: settings.Users, العمود: UserId
+------------------------------
+- المفتاح الأجنبي: FK__Customers__Compa__656C112C
+  الجدول الأجنبي: sales.Customers, العمود: CompanyId
+  الجدول الرئيسي: settings.Companies, العمود: CompanyId
+------------------------------
+- المفتاح الأجنبي: FK__Customers__Creat__6754599E
+  الجدول الأجنبي: sales.Customers, العمود: CreatedBy
+  الجدول الرئيسي: settings.Users, العمود: UserId
+------------------------------
+- المفتاح الأجنبي: FK__InvoiceIt__Invoi__72C60C4A
+  الجدول الأجنبي: sales.InvoiceItems, العمود: InvoiceId
+  الجدول الرئيسي: sales.Invoices, العمود: InvoiceId
+------------------------------
+- المفتاح الأجنبي: FK__InvoiceIt__Produ__73BA3083
+  الجدول الأجنبي: sales.InvoiceItems, العمود: ProductId
+  الجدول الرئيسي: inventory.Products, العمود: ProductId
+------------------------------
+- المفتاح الأجنبي: FK__Invoices__Compan__6E01572D
+  الجدول الأجنبي: sales.Invoices, العمود: CompanyId
+  الجدول الرئيسي: settings.Companies, العمود: CompanyId
+------------------------------
+- المفتاح الأجنبي: FK__Invoices__Create__6FE99F9F
+  الجدول الأجنبي: sales.Invoices, العمود: CreatedBy
+  الجدول الرئيسي: settings.Users, العمود: UserId
+------------------------------
+- المفتاح الأجنبي: FK__Invoices__Custom__6C190EBB
+  الجدول الأجنبي: sales.Invoices, العمود: CustomerId
+  الجدول الرئيسي: sales.Customers, العمود: CustomerId
+------------------------------
+- المفتاح الأجنبي: FK__Users__CompanyId__5070F446
+  الجدول الأجنبي: settings.Users, العمود: CompanyId
+  الجدول الرئيسي: settings.Companies, العمود: CompanyId
+------------------------------
+
+==================================================
+           أمثلة على تنفيذ الاستعلامات
+==================================================
+
+--- تنفيذ استعلام SELECT ---
+الاستعلام: SELECT TOP 5 * FROM Users
+النتائج:
+(1, 'manager', 'fe5075389f4f570d3efc94c22b63ed65381edbdebd44d3510cffb24e5f225208', 'manager@example.com')
+
+==================================================
+           جلب وتنفيذ الإجراءات المخزنة
+==================================================
+
+--- الإجراءات المخزنة (Stored Procedures) الموجودة ---
+- inventory.sp_AddProduct
+- sales.sp_CreateSalesInvoice
+
+✅ تم الالتزام بالتغييرات (إن وجدت).
+✅ تم إغلاق الاتصال بقاعدة البيانات.

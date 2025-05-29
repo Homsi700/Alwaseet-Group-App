@@ -70,17 +70,37 @@ export async function GET(request: Request) {
     const authHeader = request.headers.get('Authorization');
     console.log("[categories/route.ts] Auth header:", authHeader ? "Present" : "Not present");
     
-    // Refresh categories from memory/storage
-    mockCategories = getCategories();
+    const companyId = 1; // في المستقبل، يمكن الحصول على هذه القيمة من جلسة المستخدم
     
-    // TODO: Replace with actual database query
-    // const categories = await executeQuery<Category[]>("SELECT * FROM Categories WHERE CompanyId = @companyId", { companyId: 1 /* Get from user session */ });
+    // استعلام قاعدة البيانات للحصول على الفئات
+    const query = `
+      SELECT 
+        CategoryId as categoryId,
+        'cat_' + CAST(CategoryId AS NVARCHAR) as id,
+        Name as name,
+        Description as description,
+        CompanyId as companyId,
+        IsActive as isActive
+      FROM inventory.Categories
+      WHERE CompanyId = @companyId AND IsActive = 1
+      ORDER BY Name
+    `;
     
-    console.log("[categories/route.ts] Returning mock categories:", mockCategories);
-    return NextResponse.json(mockCategories);
+    console.log("[categories/route.ts] Executing SQL query for categories");
+    const categories = await executeQuery<Category[]>(query, { companyId });
+    console.log("[categories/route.ts] Categories fetched from database, count:", categories.length);
+    
+    // تخزين الفئات في الذاكرة للاستخدام المستقبلي (اختياري)
+    globalCategories = [...categories];
+    
+    return NextResponse.json(categories);
   } catch (error) {
-    console.error("Failed to fetch categories:", error);
-    return NextResponse.json({ message: "خطأ في جلب الفئات" }, { status: 500 });
+    console.error("Failed to fetch categories from database:", error);
+    
+    // في حالة فشل الاتصال بقاعدة البيانات، استخدم البيانات المخزنة محلياً كنسخة احتياطية
+    console.log("[categories/route.ts] Falling back to local data due to database error");
+    mockCategories = getCategories();
+    return NextResponse.json(mockCategories);
   }
 }
 
@@ -106,22 +126,98 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "اسم الفئة مطلوب" }, { status: 400 });
     }
 
-    const newCategoryId = Math.max(0, ...mockCategories.map(c => c.categoryId)) + 1;
-    const newCategory: Category = { 
-      ...body, 
-      id: `cat_${newCategoryId}`, 
-      categoryId: newCategoryId,
-      companyId: 1, // Example companyId
-    };
-    
-    console.log("[categories/route.ts] Created new category:", newCategory);
-    mockCategories.push(newCategory);
-    
-    // Save to localStorage
-    saveCategories(mockCategories);
-    console.log("[categories/route.ts] Saved categories to localStorage, total count:", mockCategories.length);
-
-    return NextResponse.json(newCategory, { status: 201 });
+    // إدخال الفئة الجديدة في قاعدة البيانات
+    try {
+      const companyId = 1; // في المستقبل، يمكن الحصول على هذه القيمة من جلسة المستخدم
+      const createdBy = 1; // في المستقبل، يمكن الحصول على هذه القيمة من جلسة المستخدم
+      
+      const insertQuery = `
+        INSERT INTO inventory.Categories (
+          Name, 
+          Description, 
+          CompanyId, 
+          CreatedBy, 
+          CreatedAt, 
+          IsActive
+        )
+        VALUES (
+          @name, 
+          @description, 
+          @companyId, 
+          @createdBy, 
+          GETDATE(), 
+          1
+        );
+        
+        SELECT SCOPE_IDENTITY() AS categoryId;
+      `;
+      
+      const result = await executeQuery<any[]>(insertQuery, {
+        name: body.name,
+        description: body.description || null,
+        companyId,
+        createdBy
+      });
+      
+      console.log("[categories/route.ts] Database insert result:", result);
+      
+      // الحصول على معرف الفئة الجديدة
+      const newCategoryId = result && result.length > 0 ? result[0].categoryId : null;
+      
+      if (!newCategoryId) {
+        throw new Error("لم يتم إرجاع معرف الفئة الجديدة من قاعدة البيانات");
+      }
+      
+      // جلب الفئة الجديدة من قاعدة البيانات للتأكد من أنها تم إنشاؤها بنجاح
+      const newCategoryQuery = `
+        SELECT 
+          CategoryId as categoryId,
+          'cat_' + CAST(CategoryId AS NVARCHAR) as id,
+          Name as name,
+          Description as description,
+          CompanyId as companyId,
+          IsActive as isActive
+        FROM inventory.Categories
+        WHERE CategoryId = @categoryId
+      `;
+      
+      const newCategories = await executeQuery<Category[]>(newCategoryQuery, { categoryId: newCategoryId });
+      
+      if (!newCategories || newCategories.length === 0) {
+        throw new Error("لم يتم العثور على الفئة الجديدة بعد إنشائها");
+      }
+      
+      const newCategory = newCategories[0];
+      console.log("[categories/route.ts] Created new category in database:", newCategory);
+      
+      // تحديث البيانات المخزنة محلياً (اختياري)
+      mockCategories.push(newCategory);
+      saveCategories(mockCategories);
+      
+      return NextResponse.json(newCategory, { status: 201 });
+    } catch (dbError) {
+      console.error("[categories/route.ts] Database error:", dbError);
+      
+      // في حالة فشل الإدخال في قاعدة البيانات، يمكن استخدام الطريقة القديمة كنسخة احتياطية
+      console.log("[categories/route.ts] Falling back to local storage due to database error");
+      
+      const newCategoryId = Math.max(0, ...mockCategories.map(c => c.categoryId)) + 1;
+      const newCategory: Category = { 
+        ...body, 
+        id: `cat_${newCategoryId}`, 
+        categoryId: newCategoryId,
+        companyId: 1,
+      };
+      
+      mockCategories.push(newCategory);
+      saveCategories(mockCategories);
+      
+      // إرجاع الفئة مع رسالة تحذير
+      return NextResponse.json({
+        ...newCategory,
+        _warning: "تم حفظ الفئة محلياً فقط بسبب خطأ في قاعدة البيانات"
+      }, { status: 201 });
+    }
   } catch (error) {
     console.error("[categories/route.ts] Failed to create category:", error);
     return NextResponse.json({ message: "خطأ في إنشاء الفئة" }, { status: 500 });

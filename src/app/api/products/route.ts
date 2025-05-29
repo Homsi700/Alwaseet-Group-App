@@ -83,40 +83,72 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const searchTerm = searchParams.get('searchTerm')?.toLowerCase() || "";
   const categoryId = searchParams.get('categoryId');
+  const companyId = 1; // في المستقبل، يمكن الحصول على هذه القيمة من جلسة المستخدم
 
   try {
     console.log("[products/route.ts] Received GET request for products");
     console.log("[products/route.ts] Search term:", searchTerm);
     console.log("[products/route.ts] Category ID:", categoryId);
     
-    // Refresh products from memory/storage
-    mockProducts = getProducts();
-    console.log("[products/route.ts] Loaded products count:", mockProducts.length);
+    // بناء استعلام SQL
+    let query = `
+      SELECT 
+        p.ProductId as productId,
+        'prod_' + CAST(p.ProductId AS NVARCHAR) as id,
+        p.Name as name,
+        p.Barcode as barcode,
+        p.Description as description,
+        p.CategoryId as categoryId,
+        c.Name as categoryName,
+        p.PurchasePrice as purchasePrice,
+        p.SalePrice as salePrice,
+        p.Quantity as quantity,
+        p.UnitOfMeasure as unitOfMeasure,
+        p.MinimumQuantity as minimumQuantity,
+        p.ImageUrl as imageUrl,
+        p.CompanyId as companyId,
+        p.IsActive as isActive
+      FROM inventory.Products p
+      LEFT JOIN inventory.Categories c ON p.CategoryId = c.CategoryId
+      WHERE p.CompanyId = @companyId AND p.IsActive = 1
+    `;
     
-    // TODO: Replace with actual database query
-    // const products = await executeQuery<Product[]>("SELECT * FROM Products WHERE CompanyId = @companyId AND IsActive = 1", { companyId: 1 /* Get from user session */ });
+    const params: Record<string, any> = { companyId };
     
-    let filteredProducts = mockProducts;
-
+    // إضافة شروط البحث إذا كانت موجودة
     if (searchTerm) {
-      filteredProducts = filteredProducts.filter(p => 
-        p.name.toLowerCase().includes(searchTerm) ||
-        p.barcode.toLowerCase().includes(searchTerm) ||
-        (p.categoryName && p.categoryName.toLowerCase().includes(searchTerm)) ||
-        (p.supplier && p.supplier.toLowerCase().includes(searchTerm))
-      );
-      console.log("[products/route.ts] Filtered by search term, count:", filteredProducts.length);
+      query += ` AND (
+        p.Name LIKE @searchPattern OR
+        p.Barcode LIKE @searchPattern OR
+        c.Name LIKE @searchPattern
+      )`;
+      params.searchPattern = `%${searchTerm}%`;
     }
-
+    
+    // إضافة تصفية حسب الفئة إذا كانت موجودة
     if (categoryId) {
-      filteredProducts = filteredProducts.filter(p => p.categoryId === parseInt(categoryId));
-      console.log("[products/route.ts] Filtered by category ID, count:", filteredProducts.length);
+      query += ` AND p.CategoryId = @categoryId`;
+      params.categoryId = parseInt(categoryId);
     }
-
-    return NextResponse.json(filteredProducts);
+    
+    console.log("[products/route.ts] Executing SQL query:", query);
+    console.log("[products/route.ts] With parameters:", params);
+    
+    // تنفيذ الاستعلام
+    const products = await executeQuery<Product[]>(query, params);
+    console.log("[products/route.ts] Products fetched from database, count:", products.length);
+    
+    // تخزين المنتجات في الذاكرة للاستخدام المستقبلي (اختياري)
+    globalProducts = [...products];
+    
+    return NextResponse.json(products);
   } catch (error) {
     console.error("Failed to fetch products:", error);
-    return NextResponse.json({ message: "خطأ في جلب المنتجات" }, { status: 500 });
+    
+    // في حالة فشل الاتصال بقاعدة البيانات، استخدم البيانات المخزنة محلياً كنسخة احتياطية
+    console.log("[products/route.ts] Falling back to local data due to database error");
+    mockProducts = getProducts();
+    return NextResponse.json(mockProducts);
   }
 }
 
@@ -154,30 +186,110 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "البيانات المطلوبة غير مكتملة" }, { status: 400 });
     }
 
-    // TODO: Implement actual database insertion
-    // const result = await executeQuery(
-    //   "INSERT INTO Products (Name, Barcode, ...) VALUES (@Name, @Barcode, ...); SELECT SCOPE_IDENTITY() AS productId;",
-    //   { Name: body.name, Barcode: body.barcode, ... }
-    // );
-    // const newProductId = result[0].productId;
+    // استخدام الإجراء المخزن لإضافة منتج جديد
+    try {
+      // يمكن استخدام الإجراء المخزن المعرف في init.sql
+      const result = await executeQuery<any[]>(`
+        EXEC inventory.sp_AddProduct
+          @Name = @name,
+          @Barcode = @barcode,
+          @Description = @description,
+          @CategoryId = @categoryId,
+          @PurchasePrice = @purchasePrice,
+          @SalePrice = @salePrice,
+          @Quantity = @quantity,
+          @UnitOfMeasure = @unitOfMeasure,
+          @MinimumQuantity = @minimumQuantity,
+          @ImageUrl = @imageUrl,
+          @CompanyId = @companyId,
+          @CreatedBy = @createdBy;
+          
+        SELECT SCOPE_IDENTITY() AS productId;
+      `, {
+        name: body.name,
+        barcode: body.barcode,
+        description: body.description || null,
+        categoryId: body.categoryId || null,
+        purchasePrice: body.purchasePrice,
+        salePrice: body.salePrice,
+        quantity: body.quantity,
+        unitOfMeasure: body.unitOfMeasure || null,
+        minimumQuantity: body.minimumQuantity || 0,
+        imageUrl: body.imageUrl || null,
+        companyId: 1, // في المستقبل، يمكن الحصول على هذه القيمة من جلسة المستخدم
+        createdBy: 1 // في المستقبل، يمكن الحصول على هذه القيمة من جلسة المستخدم
+      });
 
-    const newProductId = Math.max(0, ...mockProducts.map(p => p.productId)) + 1;
-    const newProduct: Product = { 
-      ...body, 
-      id: `prod_${newProductId}`, 
-      productId: newProductId,
-      companyId: 1, // Example companyId
-      isActive: true,
-    };
-    
-    console.log("[products/route.ts] Created new product:", newProduct);
-    mockProducts.push(newProduct);
-    
-    // Save to file
-    saveProducts(mockProducts);
-    console.log("[products/route.ts] Saved products to file, total count:", mockProducts.length);
-
-    return NextResponse.json(newProduct, { status: 201 });
+      console.log("[products/route.ts] Database insert result:", result);
+      
+      // الحصول على معرف المنتج الجديد
+      const newProductId = result && result.length > 0 ? result[0].productId : null;
+      
+      if (!newProductId) {
+        throw new Error("لم يتم إرجاع معرف المنتج الجديد من قاعدة البيانات");
+      }
+      
+      // جلب المنتج الجديد من قاعدة البيانات للتأكد من أنه تم إنشاؤه بنجاح
+      const newProductQuery = `
+        SELECT 
+          p.ProductId as productId,
+          'prod_' + CAST(p.ProductId AS NVARCHAR) as id,
+          p.Name as name,
+          p.Barcode as barcode,
+          p.Description as description,
+          p.CategoryId as categoryId,
+          c.Name as categoryName,
+          p.PurchasePrice as purchasePrice,
+          p.SalePrice as salePrice,
+          p.Quantity as quantity,
+          p.UnitOfMeasure as unitOfMeasure,
+          p.MinimumQuantity as minimumQuantity,
+          p.ImageUrl as imageUrl,
+          p.CompanyId as companyId,
+          p.IsActive as isActive
+        FROM inventory.Products p
+        LEFT JOIN inventory.Categories c ON p.CategoryId = c.CategoryId
+        WHERE p.ProductId = @productId
+      `;
+      
+      const newProducts = await executeQuery<Product[]>(newProductQuery, { productId: newProductId });
+      
+      if (!newProducts || newProducts.length === 0) {
+        throw new Error("لم يتم العثور على المنتج الجديد بعد إنشائه");
+      }
+      
+      const newProduct = newProducts[0];
+      console.log("[products/route.ts] Created new product in database:", newProduct);
+      
+      // تحديث البيانات المخزنة محلياً (اختياري)
+      mockProducts.push(newProduct);
+      saveProducts(mockProducts);
+      
+      return NextResponse.json(newProduct, { status: 201 });
+    } catch (dbError) {
+      console.error("[products/route.ts] Database error:", dbError);
+      
+      // في حالة فشل الإدخال في قاعدة البيانات، يمكن استخدام الطريقة القديمة كنسخة احتياطية
+      console.log("[products/route.ts] Falling back to local storage due to database error");
+      
+      const newProductId = Math.max(0, ...mockProducts.map(p => p.productId)) + 1;
+      const newProduct: Product = { 
+        ...body, 
+        id: `prod_${newProductId}`, 
+        productId: newProductId,
+        companyId: 1,
+        isActive: true,
+      };
+      
+      mockProducts.push(newProduct);
+      saveProducts(mockProducts);
+      
+      // إرجاع المنتج مع رسالة تحذير
+      return NextResponse.json({
+        ...newProduct,
+        _warning: "تم حفظ المنتج محلياً فقط بسبب خطأ في قاعدة البيانات"
+      }, { status: 201 });
+    }
   } catch (error) {
     console.error("[products/route.ts] Failed to create product:", error);
     return NextResponse.json({ message: "خطأ في إنشاء المنتج" }, { status: 500 });

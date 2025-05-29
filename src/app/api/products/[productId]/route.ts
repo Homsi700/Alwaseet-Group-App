@@ -67,30 +67,75 @@ let mockProducts: Product[] = getProducts();
 // GET /api/products/{productId} - Fetch a single product by ID
 export async function GET(request: Request, { params }: { params: { productId: string } }) {
   const productId = parseInt(params.productId);
+  const companyId = 1; // في المستقبل، يمكن الحصول على هذه القيمة من جلسة المستخدم
+  
   try {
     console.log(`[products/[productId]/route.ts] Received GET request for product ID: ${productId}`);
     
-    // Refresh products from memory/storage
-    mockProducts = getProducts();
-    console.log(`[products/[productId]/route.ts] Loaded products count: ${mockProducts.length}`);
+    // استعلام قاعدة البيانات للحصول على المنتج
+    const query = `
+      SELECT 
+        p.ProductId as productId,
+        'prod_' + CAST(p.ProductId AS NVARCHAR) as id,
+        p.Name as name,
+        p.Barcode as barcode,
+        p.Description as description,
+        p.CategoryId as categoryId,
+        c.Name as categoryName,
+        p.PurchasePrice as purchasePrice,
+        p.SalePrice as salePrice,
+        p.Quantity as quantity,
+        p.UnitOfMeasure as unitOfMeasure,
+        p.MinimumQuantity as minimumQuantity,
+        p.ImageUrl as imageUrl,
+        p.CompanyId as companyId,
+        p.IsActive as isActive
+      FROM inventory.Products p
+      LEFT JOIN inventory.Categories c ON p.CategoryId = c.CategoryId
+      WHERE p.ProductId = @productId AND p.CompanyId = @companyId AND p.IsActive = 1
+    `;
     
-    // TODO: Replace with actual database query
-    // const product = await executeQuery<Product[]>("SELECT * FROM Products WHERE ProductId = @productId AND CompanyId = @companyId", { productId, companyId: 1 });
-    // if (product.length === 0) {
-    //   return NextResponse.json({ message: "المنتج غير موجود" }, { status: 404 });
-    // }
-    const product = mockProducts.find(p => p.productId === productId);
+    console.log(`[products/[productId]/route.ts] Executing SQL query for product ID: ${productId}`);
+    const products = await executeQuery<Product[]>(query, { productId, companyId });
     
-    if (!product) {
-      console.log(`[products/[productId]/route.ts] Product with ID ${productId} not found`);
-      return NextResponse.json({ message: "المنتج غير موجود" }, { status: 404 });
+    if (!products || products.length === 0) {
+      console.log(`[products/[productId]/route.ts] Product with ID ${productId} not found in database`);
+      
+      // في حالة فشل الاستعلام، يمكن البحث في البيانات المحلية كنسخة احتياطية
+      mockProducts = getProducts();
+      const product = mockProducts.find(p => p.productId === productId);
+      
+      if (!product) {
+        return NextResponse.json({ message: "المنتج غير موجود" }, { status: 404 });
+      }
+      
+      console.log(`[products/[productId]/route.ts] Found product in local storage:`, product);
+      return NextResponse.json(product);
     }
     
-    console.log(`[products/[productId]/route.ts] Found product:`, product);
+    const product = products[0];
+    console.log(`[products/[productId]/route.ts] Found product in database:`, product);
     return NextResponse.json(product);
   } catch (error) {
     console.error(`Failed to fetch product ${productId}:`, error);
-    return NextResponse.json({ message: "خطأ في جلب المنتج" }, { status: 500 });
+    
+    // في حالة فشل الاتصال بقاعدة البيانات، يمكن البحث في البيانات المحلية كنسخة احتياطية
+    try {
+      mockProducts = getProducts();
+      const product = mockProducts.find(p => p.productId === productId);
+      
+      if (!product) {
+        return NextResponse.json({ message: "المنتج غير موجود" }, { status: 404 });
+      }
+      
+      console.log(`[products/[productId]/route.ts] Found product in local storage after database error:`, product);
+      return NextResponse.json({
+        ...product,
+        _warning: "تم استرجاع المنتج من التخزين المحلي بسبب خطأ في قاعدة البيانات"
+      });
+    } catch (localError) {
+      return NextResponse.json({ message: "خطأ في جلب المنتج" }, { status: 500 });
+    }
   }
 }
 
@@ -99,6 +144,9 @@ export async function PUT(request: Request, { params }: { params: { productId: s
   console.log(`[products/[productId]/route.ts] Received PUT request for product ID: ${params.productId}`);
   
   const productId = parseInt(params.productId);
+  const companyId = 1; // في المستقبل، يمكن الحصول على هذه القيمة من جلسة المستخدم
+  const userId = 1; // في المستقبل، يمكن الحصول على هذه القيمة من جلسة المستخدم
+  
   try {
     // Check for auth header (optional)
     const authHeader = request.headers.get('Authorization');
@@ -116,54 +164,216 @@ export async function PUT(request: Request, { params }: { params: { productId: s
       return NextResponse.json({ message: "خطأ في تنسيق البيانات" }, { status: 400 });
     }
 
-    // TODO: Add validation
-    // TODO: Implement actual database update
-    // await executeQuery("UPDATE Products SET Name = @Name, ... WHERE ProductId = @productId AND CompanyId = @companyId", { ...body, productId, companyId: 1 });
+    // التحقق من وجود المنتج قبل التحديث
+    const checkQuery = `
+      SELECT ProductId FROM inventory.Products 
+      WHERE ProductId = @productId AND CompanyId = @companyId AND IsActive = 1
+    `;
     
-    const productIndex = mockProducts.findIndex(p => p.productId === productId);
-    console.log(`[products/[productId]/route.ts] Product index: ${productIndex}`);
+    const existingProducts = await executeQuery<any[]>(checkQuery, { productId, companyId });
     
-    if (productIndex === -1) {
-      console.log(`[products/[productId]/route.ts] Product with ID ${productId} not found`);
+    if (!existingProducts || existingProducts.length === 0) {
+      console.log(`[products/[productId]/route.ts] Product with ID ${productId} not found in database`);
       return NextResponse.json({ message: "المنتج غير موجود" }, { status: 404 });
     }
     
-    const updatedProduct = { ...mockProducts[productIndex], ...body };
-    console.log("[products/[productId]/route.ts] Updated product:", updatedProduct);
+    // بناء استعلام التحديث ديناميكياً بناءً على الحقول المتوفرة في الطلب
+    let updateFields = [];
+    let params: Record<string, any> = { productId, companyId };
     
-    mockProducts[productIndex] = updatedProduct;
+    if (body.name !== undefined) {
+      updateFields.push("Name = @name");
+      params.name = body.name;
+    }
     
-    // Save to file
-    saveProducts(mockProducts);
-    console.log(`[products/[productId]/route.ts] Saved updated product to file, ID: ${productId}`);
-
-    return NextResponse.json(mockProducts[productIndex]);
+    if (body.barcode !== undefined) {
+      updateFields.push("Barcode = @barcode");
+      params.barcode = body.barcode;
+    }
+    
+    if (body.description !== undefined) {
+      updateFields.push("Description = @description");
+      params.description = body.description;
+    }
+    
+    if (body.categoryId !== undefined) {
+      updateFields.push("CategoryId = @categoryId");
+      params.categoryId = body.categoryId;
+    }
+    
+    if (body.purchasePrice !== undefined) {
+      updateFields.push("PurchasePrice = @purchasePrice");
+      params.purchasePrice = body.purchasePrice;
+    }
+    
+    if (body.salePrice !== undefined) {
+      updateFields.push("SalePrice = @salePrice");
+      params.salePrice = body.salePrice;
+    }
+    
+    if (body.quantity !== undefined) {
+      updateFields.push("Quantity = @quantity");
+      params.quantity = body.quantity;
+    }
+    
+    if (body.unitOfMeasure !== undefined) {
+      updateFields.push("UnitOfMeasure = @unitOfMeasure");
+      params.unitOfMeasure = body.unitOfMeasure;
+    }
+    
+    if (body.minimumQuantity !== undefined) {
+      updateFields.push("MinimumQuantity = @minimumQuantity");
+      params.minimumQuantity = body.minimumQuantity;
+    }
+    
+    if (body.imageUrl !== undefined) {
+      updateFields.push("ImageUrl = @imageUrl");
+      params.imageUrl = body.imageUrl;
+    }
+    
+    // إضافة حقول التحديث الإلزامية
+    updateFields.push("UpdatedAt = GETDATE()");
+    
+    // إذا لم تكن هناك حقول للتحديث، فلا داعي للاستمرار
+    if (updateFields.length === 0) {
+      return NextResponse.json({ message: "لم يتم تحديد أي حقول للتحديث" }, { status: 400 });
+    }
+    
+    // تنفيذ استعلام التحديث
+    const updateQuery = `
+      UPDATE inventory.Products 
+      SET ${updateFields.join(", ")} 
+      WHERE ProductId = @productId AND CompanyId = @companyId;
+      
+      -- إرجاع المنتج المحدث
+      SELECT 
+        p.ProductId as productId,
+        'prod_' + CAST(p.ProductId AS NVARCHAR) as id,
+        p.Name as name,
+        p.Barcode as barcode,
+        p.Description as description,
+        p.CategoryId as categoryId,
+        c.Name as categoryName,
+        p.PurchasePrice as purchasePrice,
+        p.SalePrice as salePrice,
+        p.Quantity as quantity,
+        p.UnitOfMeasure as unitOfMeasure,
+        p.MinimumQuantity as minimumQuantity,
+        p.ImageUrl as imageUrl,
+        p.CompanyId as companyId,
+        p.IsActive as isActive
+      FROM inventory.Products p
+      LEFT JOIN inventory.Categories c ON p.CategoryId = c.CategoryId
+      WHERE p.ProductId = @productId AND p.CompanyId = @companyId;
+    `;
+    
+    console.log(`[products/[productId]/route.ts] Executing SQL update query for product ID: ${productId}`);
+    console.log(`[products/[productId]/route.ts] Update fields: ${updateFields.join(", ")}`);
+    
+    const updatedProducts = await executeQuery<Product[]>(updateQuery, params);
+    
+    if (!updatedProducts || updatedProducts.length === 0) {
+      throw new Error("فشل في استرجاع المنتج المحدث من قاعدة البيانات");
+    }
+    
+    const updatedProduct = updatedProducts[0];
+    console.log(`[products/[productId]/route.ts] Product updated successfully in database:`, updatedProduct);
+    
+    // تحديث البيانات المحلية أيضاً (اختياري)
+    const productIndex = mockProducts.findIndex(p => p.productId === productId);
+    if (productIndex !== -1) {
+      mockProducts[productIndex] = updatedProduct;
+      saveProducts(mockProducts);
+    }
+    
+    return NextResponse.json(updatedProduct);
   } catch (error) {
     console.error(`[products/[productId]/route.ts] Failed to update product ${productId}:`, error);
-    return NextResponse.json({ message: "خطأ في تحديث المنتج" }, { status: 500 });
+    
+    // في حالة فشل الاتصال بقاعدة البيانات، يمكن استخدام الطريقة القديمة كنسخة احتياطية
+    try {
+      const productIndex = mockProducts.findIndex(p => p.productId === productId);
+      
+      if (productIndex === -1) {
+        return NextResponse.json({ message: "المنتج غير موجود" }, { status: 404 });
+      }
+      
+      const body = JSON.parse(await request.text()) as Partial<Omit<Product, 'id' | 'productId'>>;
+      const updatedProduct = { ...mockProducts[productIndex], ...body };
+      
+      mockProducts[productIndex] = updatedProduct;
+      saveProducts(mockProducts);
+      
+      return NextResponse.json({
+        ...updatedProduct,
+        _warning: "تم تحديث المنتج محلياً فقط بسبب خطأ في قاعدة البيانات"
+      });
+    } catch (localError) {
+      return NextResponse.json({ message: "خطأ في تحديث المنتج" }, { status: 500 });
+    }
   }
 }
 
 // DELETE /api/products/{productId} - Delete a product
 export async function DELETE(request: Request, { params }: { params: { productId: string } }) {
   const productId = parseInt(params.productId);
+  const companyId = 1; // في المستقبل، يمكن الحصول على هذه القيمة من جلسة المستخدم
+  
   try {
-    // TODO: Implement actual database deletion (soft delete by setting IsActive = 0 or hard delete)
-    // await executeQuery("UPDATE Products SET IsActive = 0 WHERE ProductId = @productId AND CompanyId = @companyId", { productId, companyId: 1 });
+    console.log(`[products/[productId]/route.ts] Received DELETE request for product ID: ${productId}`);
     
-    const productIndex = mockProducts.findIndex(p => p.productId === productId);
-    if (productIndex === -1) {
+    // التحقق من وجود المنتج قبل الحذف
+    const checkQuery = `
+      SELECT ProductId FROM inventory.Products 
+      WHERE ProductId = @productId AND CompanyId = @companyId AND IsActive = 1
+    `;
+    
+    const existingProducts = await executeQuery<any[]>(checkQuery, { productId, companyId });
+    
+    if (!existingProducts || existingProducts.length === 0) {
+      console.log(`[products/[productId]/route.ts] Product with ID ${productId} not found in database`);
       return NextResponse.json({ message: "المنتج غير موجود" }, { status: 404 });
     }
-    mockProducts.splice(productIndex, 1);
     
-    // Save to file
-    saveProducts(mockProducts);
-    console.log(`[products/[productId]/route.ts] Saved products to file after deleting product ID: ${productId}`);
-
+    // تنفيذ حذف ناعم (soft delete) عن طريق تعيين IsActive = 0
+    const deleteQuery = `
+      UPDATE inventory.Products 
+      SET IsActive = 0, UpdatedAt = GETDATE() 
+      WHERE ProductId = @productId AND CompanyId = @companyId
+    `;
+    
+    console.log(`[products/[productId]/route.ts] Executing SQL soft delete query for product ID: ${productId}`);
+    await executeQuery(deleteQuery, { productId, companyId });
+    
+    console.log(`[products/[productId]/route.ts] Product soft deleted successfully in database: ${productId}`);
+    
+    // تحديث البيانات المحلية أيضاً (اختياري)
+    const productIndex = mockProducts.findIndex(p => p.productId === productId);
+    if (productIndex !== -1) {
+      mockProducts.splice(productIndex, 1);
+      saveProducts(mockProducts);
+    }
+    
     return NextResponse.json({ message: "تم حذف المنتج بنجاح" });
   } catch (error) {
-    console.error(`Failed to delete product ${productId}:`, error);
-    return NextResponse.json({ message: "خطأ في حذف المنتج" }, { status: 500 });
+    console.error(`[products/[productId]/route.ts] Failed to delete product ${productId}:`, error);
+    
+    // في حالة فشل الاتصال بقاعدة البيانات، يمكن استخدام الطريقة القديمة كنسخة احتياطية
+    try {
+      const productIndex = mockProducts.findIndex(p => p.productId === productId);
+      
+      if (productIndex === -1) {
+        return NextResponse.json({ message: "المنتج غير موجود" }, { status: 404 });
+      }
+      
+      mockProducts.splice(productIndex, 1);
+      saveProducts(mockProducts);
+      
+      return NextResponse.json({ 
+        message: "تم حذف المنتج محلياً فقط بسبب خطأ في قاعدة البيانات" 
+      });
+    } catch (localError) {
+      return NextResponse.json({ message: "خطأ في حذف المنتج" }, { status: 500 });
+    }
   }
 }
