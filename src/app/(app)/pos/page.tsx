@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -285,7 +284,7 @@ export default function PointOfSalePage() {
               <Button 
                 size="lg" 
                 className="w-full rounded-md bg-accent hover:bg-accent/90 text-accent-foreground"
-                onClick={() => {
+                onClick={async () => {
                   if (cart.length === 0) {
                     toast({ 
                       title: "لا توجد منتجات", 
@@ -295,214 +294,227 @@ export default function PointOfSalePage() {
                     return;
                   }
                   
-                  // إنشاء نافذة طباعة
-                  const printWindow = window.open('', '_blank');
-                  if (!printWindow) {
-                    toast({ 
-                      title: "خطأ في الطباعة", 
-                      description: "لم نتمكن من فتح نافذة الطباعة. يرجى التحقق من إعدادات المتصفح.", 
-                      variant: "destructive" 
+                  try {
+                    // تحويل عناصر السلة إلى تنسيق بنود الفاتورة
+                    const invoiceItems = cart.map(item => ({
+                      productId: parseInt(item.id.replace('prod_', '')),
+                      quantity: item.quantity,
+                      unitPrice: item.price,
+                      discountPercent: 0,
+                      taxPercent: 0
+                    }));
+                    
+                    // إنشاء كائن الفاتورة
+                    const invoiceData = {
+                      invoice: {
+                        customerId: 1, // في المستقبل، يمكن الحصول على معرف العميل الحقيقي
+                        invoiceDate: new Date().toISOString(),
+                        paymentMethod: "نقدي",
+                        notes: `فاتورة من نقطة البيع - العميل: ${customer}`,
+                        discountPercent: discountPercent,
+                        status: "مكتملة"
+                      },
+                      items: invoiceItems
+                    };
+                    
+                    console.log("[pos/page.tsx] إرسال بيانات الفاتورة:", invoiceData);
+                    
+                    // إرسال الفاتورة إلى API
+                    const response = await fetch('/api/invoices', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify(invoiceData),
                     });
-                    return;
-                  }
-                  
-                  // إنشاء محتوى الفاتورة
-                  const invoiceDate = new Date().toLocaleDateString('ar-SA');
-                  const invoiceTime = new Date().toLocaleTimeString('ar-SA');
-                  
-                  printWindow.document.write(`
-                    <html dir="rtl">
-                    <head>
-                      <title>فاتورة رقم ${invoiceNumber}</title>
-                      <style>
-                        @page {
-                          size: 80mm auto; /* عرض 80 ملم وارتفاع تلقائي - مناسب لطابعات الكاشير */
-                          margin: 0mm;
-                        }
-                        body {
-                          font-family: Arial, sans-serif;
-                          margin: 0;
-                          padding: 5mm;
-                          direction: rtl;
-                          width: 70mm; /* عرض المحتوى */
-                          font-size: 10pt; /* حجم خط أصغر */
-                        }
-                        .invoice-header {
-                          text-align: center;
-                          margin-bottom: 5mm;
-                        }
-                        .invoice-header h1 {
-                          font-size: 12pt;
-                          margin: 0;
-                          padding: 0;
-                        }
-                        .invoice-header p {
-                          font-size: 10pt;
-                          margin: 2mm 0;
-                        }
-                        .invoice-details {
-                          margin-bottom: 5mm;
-                          font-size: 9pt;
-                        }
-                        .invoice-details p {
-                          margin: 1mm 0;
-                        }
-                        table {
-                          width: 100%;
-                          border-collapse: collapse;
-                          font-size: 8pt;
-                        }
-                        th, td {
-                          padding: 1mm 2mm;
-                          text-align: right;
-                          border-bottom: 1px dotted #000;
-                        }
-                        .total-section {
-                          margin-top: 5mm;
-                          text-align: left;
-                          font-size: 9pt;
-                        }
-                        .total-section p {
-                          margin: 1mm 0;
-                        }
-                        .footer {
-                          margin-top: 5mm;
-                          text-align: center;
-                          font-size: 8pt;
-                          border-top: 1px dotted #000;
-                          padding-top: 2mm;
-                        }
-                        .footer p {
-                          margin: 1mm 0;
-                        }
-                        .divider {
-                          border-top: 1px dashed #000;
-                          margin: 3mm 0;
-                        }
-                        @media print {
-                          button {
-                            display: none;
-                          }
-                        }
-                      </style>
-                    </head>
-                    <body>
-                      <div class="invoice-header">
-                        <h1>مجموعة الوسيط جروب</h1>
-                        <p>فاتورة ضريبية مبسطة</p>
-                      </div>
-                      
-                      <div class="divider"></div>
-                      
-                      <div class="invoice-details">
-                        <p><strong>رقم الفاتورة:</strong> ${invoiceNumber}</p>
-                        <p><strong>التاريخ:</strong> ${invoiceDate}</p>
-                        <p><strong>الوقت:</strong> ${invoiceTime}</p>
-                        <p><strong>العميل:</strong> ${customer}</p>
-                      </div>
-                      
-                      <div class="divider"></div>
-                      
-                      <table>
-                        <thead>
-                          <tr>
-                            <th>المنتج</th>
-                            <th>الكمية</th>
-                            <th>السعر</th>
-                            <th>الإجمالي</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          ${cart.map((item) => `
-                            <tr>
-                              <td>${item.name}</td>
-                              <td>${item.quantity}</td>
-                              <td>${item.price.toFixed(2)}</td>
-                              <td>${(item.price * item.quantity).toFixed(2)}</td>
-                            </tr>
-                          `).join('')}
-                        </tbody>
-                      </table>
-                      
-                      <div class="divider"></div>
-                      
-                      <div class="total-section">
-                        <p><strong>المجموع:</strong> ${subtotal.toFixed(2)} ر.س</p>
-                        <p><strong>الخصم (${discountPercent}%):</strong> ${discountAmount.toFixed(2)} ر.س</p>
-                        <p><strong>الإجمالي:</strong> ${totalAmount.toFixed(2)} ر.س</p>
-                      </div>
-                      
-                      <div class="footer">
-                        <p>شكراً لتسوقكم معنا!</p>
-                        <p>للاستفسارات: 0123456789</p>
-                      </div>
-                      
-                      <div style="text-align: center; margin-top: 5mm;">
-                        <button onclick="window.print(); setTimeout(() => window.close(), 500);">طباعة الفاتورة</button>
-                      </div>
-                    </body>
-                    </html>
-                  `);
-                  
-                  // إغلاق الفاتورة الحالية وإنشاء فاتورة جديدة
-                  setCart([]);
-                  setDiscountPercent(0);
-                  setCustomer("عميل عابر");
-                  
-                  // إنشاء رقم فاتورة جديد
-                  const newInvoiceNumber = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-                  setInvoiceNumber(newInvoiceNumber);
-                  
-                  toast({ 
-                    title: "تم إنشاء الفاتورة", 
-                    description: `تم إنشاء الفاتورة رقم ${invoiceNumber} بنجاح` 
-                  });
-                }}
-                disabled={cart.length === 0}
-              >
-                معالجة الدفع وطباعة الفاتورة
-              </Button>
-              
-              <div className="flex gap-2 w-full">
-                <Button 
-                  variant="outline" 
-                  size="lg" 
-                  className="flex-1 rounded-md"
-                  onClick={() => {
-                    if (cart.length === 0) {
+                    
+                    if (!response.ok) {
+                      const errorData = await response.json();
+                      throw new Error(errorData.message || 'فشل في إنشاء الفاتورة');
+                    }
+                    
+                    const result = await response.json();
+                    console.log("[pos/page.tsx] تم إنشاء الفاتورة بنجاح:", result);
+                    
+                    // استخدام رقم الفاتورة من الاستجابة
+                    const serverInvoiceNumber = result.invoice?.invoiceNumber || invoiceNumber;
+                    
+                    // إنشاء نافذة طباعة
+                    const printWindow = window.open('', '_blank');
+                    if (!printWindow) {
                       toast({ 
-                        title: "لا توجد منتجات", 
-                        description: "السلة فارغة بالفعل", 
+                        title: "خطأ في الطباعة", 
+                        description: "لم نتمكن من فتح نافذة الطباعة. يرجى التحقق من إعدادات المتصفح.", 
                         variant: "destructive" 
                       });
                       return;
                     }
                     
+                    // إنشاء محتوى الفاتورة
+                    const invoiceDate = new Date().toLocaleDateString('ar-SA');
+                    const invoiceTime = new Date().toLocaleTimeString('ar-SA');
+                    
+                    printWindow.document.write(`
+                      <html dir="rtl">
+                      <head>
+                        <title>فاتورة رقم ${serverInvoiceNumber}</title>
+                        <style>
+                          @page {
+                            size: 80mm auto; /* عرض 80 ملم وارتفاع تلقائي - مناسب لطابعات الكاشير */
+                            margin: 0mm;
+                          }
+                          body {
+                            font-family: Arial, sans-serif;
+                            margin: 0;
+                            padding: 5mm;
+                            direction: rtl;
+                            width: 70mm; /* عرض المحتوى */
+                            font-size: 10pt; /* حجم خط أصغر */
+                          }
+                          .invoice-header {
+                            text-align: center;
+                            margin-bottom: 5mm;
+                          }
+                          .invoice-header h1 {
+                            font-size: 12pt;
+                            margin: 0;
+                            padding: 0;
+                          }
+                          .invoice-header p {
+                            font-size: 10pt;
+                            margin: 2mm 0;
+                          }
+                          .invoice-details {
+                            margin-bottom: 5mm;
+                            font-size: 9pt;
+                          }
+                          .invoice-details p {
+                            margin: 1mm 0;
+                          }
+                          table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-bottom: 5mm;
+                            font-size: 8pt;
+                          }
+                          th, td {
+                            padding: 1mm;
+                            text-align: right;
+                            border-bottom: 1px dotted #ccc;
+                          }
+                          th {
+                            font-weight: bold;
+                          }
+                          .divider {
+                            border-bottom: 1px dashed #000;
+                            margin: 3mm 0;
+                          }
+                          .total-section {
+                            font-size: 9pt;
+                            margin-bottom: 5mm;
+                          }
+                          .total-section p {
+                            margin: 1mm 0;
+                            text-align: right;
+                          }
+                          .footer {
+                            text-align: center;
+                            font-size: 8pt;
+                            margin-top: 5mm;
+                            border-top: 1px solid #000;
+                            padding-top: 2mm;
+                          }
+                          .footer p {
+                            margin: 1mm 0;
+                          }
+                          @media print {
+                            button {
+                              display: none;
+                            }
+                          }
+                        </style>
+                      </head>
+                      <body>
+                        <div class="invoice-header">
+                          <h1>مجموعة الوسيط</h1>
+                          <p>فاتورة مبيعات</p>
+                        </div>
+                        
+                        <div class="invoice-details">
+                          <p><strong>رقم الفاتورة:</strong> ${serverInvoiceNumber}</p>
+                          <p><strong>التاريخ:</strong> ${invoiceDate}</p>
+                          <p><strong>الوقت:</strong> ${invoiceTime}</p>
+                          <p><strong>العميل:</strong> ${customer}</p>
+                        </div>
+                        
+                        <div class="divider"></div>
+                        
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>المنتج</th>
+                              <th>الكمية</th>
+                              <th>السعر</th>
+                              <th>الإجمالي</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            ${cart.map((item) => `
+                              <tr>
+                                <td>${item.name}</td>
+                                <td>${item.quantity}</td>
+                                <td>${item.price.toFixed(2)}</td>
+                                <td>${(item.price * item.quantity).toFixed(2)}</td>
+                              </tr>
+                            `).join('')}
+                          </tbody>
+                        </table>
+                        
+                        <div class="divider"></div>
+                        
+                        <div class="total-section">
+                          <p><strong>المجموع:</strong> ${subtotal.toFixed(2)} ر.س</p>
+                          <p><strong>الخصم (${discountPercent}%):</strong> ${discountAmount.toFixed(2)} ر.س</p>
+                          <p><strong>الإجمالي:</strong> ${totalAmount.toFixed(2)} ر.س</p>
+                        </div>
+                        
+                        <div class="footer">
+                          <p>شكراً لتسوقكم معنا!</p>
+                          <p>للاستفسارات: 0123456789</p>
+                        </div>
+                        
+                        <div style="text-align: center; margin-top: 5mm;">
+                          <button onclick="window.print(); setTimeout(() => window.close(), 500);">طباعة الفاتورة</button>
+                        </div>
+                      </body>
+                      </html>
+                    `);
+                    
+                    // إغلاق الفاتورة الحالية وإنشاء فاتورة جديدة
                     setCart([]);
                     setDiscountPercent(0);
                     setCustomer("عميل عابر");
-                    
-                    // إنشاء رقم فاتورة جديد
-                    const newInvoiceNumber = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-                    setInvoiceNumber(newInvoiceNumber);
+                    setInvoiceNumber(Math.floor(Math.random() * 10000).toString().padStart(4, '0'));
                     
                     toast({ 
-                      title: "تم إلغاء الفاتورة", 
-                      description: "تم إلغاء الفاتورة الحالية وإنشاء فاتورة جديدة" 
+                      title: "تم إنشاء الفاتورة", 
+                      description: "تم إنشاء الفاتورة بنجاح وحفظها في قاعدة البيانات" 
                     });
-                  }}
-                >
-                  <XCircle className="ml-2 rtl:mr-2 h-5 w-5 icon-directional" /> إلغاء الفاتورة
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  size="lg" 
-                  className="flex-1 rounded-md"
-                >
-                  <FileText className="ml-2 rtl:mr-2 h-5 w-5 icon-directional" /> حفظ كمسودة
-                </Button>
-              </div>
+                  } catch (error) {
+                    console.error("[pos/page.tsx] خطأ في إنشاء الفاتورة:", error);
+                    toast({ 
+                      title: "خطأ في إنشاء الفاتورة", 
+                      description: error instanceof Error ? error.message : "حدث خطأ أثناء إنشاء الفاتورة", 
+                      variant: "destructive" 
+                    });
+                  }
+                }}
+              >
+                <FileText className="ml-2 rtl:mr-2 h-5 w-5 icon-directional" /> إصدار الفاتورة وطباعتها
+              </Button>
+              <Button variant="outline" className="w-full rounded-md">
+                <Users className="ml-2 rtl:mr-2 h-5 w-5 icon-directional" /> اختيار عميل
+              </Button>
             </CardFooter>
           </Card>
         </div>
