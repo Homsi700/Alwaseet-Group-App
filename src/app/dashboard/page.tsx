@@ -39,7 +39,7 @@ interface Kpi {
 }
 
 const staticKpis: Kpi[] = [
-  { title: "إجمالي المبيعات", value: "125,670 ريال", icon: DollarSign, change: "+5.2% هذا الشهر", changeType: 'positive', description: "إجمالي المبيعات من جميع الفروع" },
+  { title: "إجمالي المبيعات", value: "125,670 ل.س", icon: DollarSign, change: "+5.2% هذا الشهر", changeType: 'positive', description: "إجمالي المبيعات من جميع الفروع" },
   { title: "عدد الفواتير", value: "1,280", icon: ShoppingCart, change: "+8.1% هذا الشهر", changeType: 'positive', description: "عدد عمليات البيع" },
   { title: "العملاء النشطين", value: "350", icon: Users, change: "-1.5% هذا الشهر", changeType: 'negative', description: "العملاء ذوو النشاط الحديث" },
   { title: "المنتجات المتوفرة", value: "2,400", icon: Package, change: "+200 صنف", changeType: 'positive', description: "إجمالي المنتجات المتوفرة" },
@@ -83,7 +83,7 @@ function DashboardContent() {
   
   // تنسيق المبالغ المالية
   const formatCurrency = (value: number) => {
-    return `${value.toLocaleString('ar-SA')} ريال`;
+    return `${value.toLocaleString('ar-SY')} ل.س`;
   };
   
   // تنسيق التاريخ

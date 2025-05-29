@@ -187,7 +187,7 @@ END
 IF NOT EXISTS (SELECT * FROM dbo.Companies WHERE Name = 'شركة الوسيط')
 BEGIN
     INSERT INTO dbo.Companies (Name, TaxNumber, Address, PhoneNumber, Email, CurrencyCode, CurrencySymbol)
-    VALUES ('شركة الوسيط', '123456789', 'الرياض، المملكة العربية السعودية', '0555555555', 'info@alwaseet.com', 'SAR', 'ر.س');
+    VALUES ('شركة الوسيط', '123456789', 'دمشق، سوريا', '0955555555', 'info@alwaseet.com', 'SYP', 'ل.س');
 END
 
 -- إدراج مستخدم

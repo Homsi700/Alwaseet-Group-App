@@ -17,6 +17,7 @@ import type { Product, Category } from '@/types';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ProductCodeGenerator } from "@/components/products/ProductCodeGenerator";
 
 
 // API Interaction Functions
@@ -204,7 +205,19 @@ const ProductFormFields = ({
     </div>
     <div className="grid grid-cols-4 items-center gap-4">
       <Label htmlFor="barcode" className="text-left rtl:text-right">الباركود</Label>
-      <Input id="barcode" value={product.barcode || ""} onChange={(e) => setProduct('barcode', e.target.value)} className="col-span-3 rounded-md" placeholder="باركود المنتج" />
+      <div className="col-span-3 flex gap-2">
+        <Input 
+          id="barcode" 
+          value={product.barcode || ""} 
+          onChange={(e) => setProduct('barcode', e.target.value)} 
+          className="flex-1 rounded-md" 
+          placeholder="باركود المنتج" 
+        />
+        <ProductCodeGenerator 
+          productName={product.name || ""} 
+          onCodeGenerated={(code) => setProduct('barcode', code)} 
+        />
+      </div>
     </div>
      <div className="grid grid-cols-4 items-start gap-4">
       <Label htmlFor="description" className="text-left rtl:text-right mt-2">الوصف</Label>

@@ -19,7 +19,7 @@ interface Kpi {
 
 // تم تحديث البيانات لتكون باللغة العربية
 const kpis: Kpi[] = [
-  { title: "إجمالي الإيرادات", value: "١٢٥٬٦٧٠ ر.س", icon: DollarSign, change: "+٥.٢٪ هذا الشهر", changeType: 'positive', description: "الإيرادات المتولدة من جميع المبيعات" },
+  { title: "إجمالي الإيرادات", value: "١٢٥٬٦٧٠ ل.س", icon: DollarSign, change: "+٥.٢٪ هذا الشهر", changeType: 'positive', description: "الإيرادات المتولدة من جميع المبيعات" },
   { title: "إجمالي المبيعات", value: "١٬٢٨٠", icon: ShoppingCart, change: "+٨.١٪ هذا الشهر", changeType: 'positive', description: "عدد معاملات البيع" },
   { title: "العملاء النشطون", value: "٣٥٠", icon: Users, change: "-١.٥٪ هذا الشهر", changeType: 'negative', description: "العملاء ذوو النشاط الأخير" },
   { title: "المنتجات في المخزن", value: "٢٬٤٠٠", icon: Package, change: "+٢٠٠ وحدة", changeType: 'positive', description: "إجمالي كمية المنتجات المتاحة" },

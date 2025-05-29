@@ -228,18 +228,18 @@ export default function PrintInvoicePage({ params }: PrintInvoiceProps) {
                   <TableCell>{index + 1}</TableCell>
                   <TableCell className="font-medium">{item.productName}</TableCell>
                   <TableCell>{item.quantity} {item.unitOfMeasure || ''}</TableCell>
-                  <TableCell>{item.unitPrice.toFixed(2)} ر.س</TableCell>
+                  <TableCell>{item.unitPrice.toFixed(2)} ل.س</TableCell>
                   <TableCell>
                     {item.discountPercent > 0
-                      ? `${item.discountAmount.toFixed(2)} ر.س (${item.discountPercent}%)`
+                      ? `${item.discountAmount.toFixed(2)} ل.س (${item.discountPercent}%)`
                       : '-'}
                   </TableCell>
                   <TableCell>
                     {item.taxPercent > 0
-                      ? `${item.taxAmount.toFixed(2)} ر.س (${item.taxPercent}%)`
+                      ? `${item.taxAmount.toFixed(2)} ل.س (${item.taxPercent}%)`
                       : '-'}
                   </TableCell>
-                  <TableCell className="text-left">{item.lineTotal.toFixed(2)} ر.س</TableCell>
+                  <TableCell className="text-left">{item.lineTotal.toFixed(2)} ل.س</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -252,27 +252,27 @@ export default function PrintInvoicePage({ params }: PrintInvoiceProps) {
             <div className="border rounded-md p-4">
               <div className="flex justify-between mb-2">
                 <span>المجموع الفرعي:</span>
-                <span>{invoice.subTotal.toFixed(2)} ر.س</span>
+                <span>{invoice.subTotal.toFixed(2)} ل.س</span>
               </div>
               <div className="flex justify-between mb-2">
                 <span>الخصم ({invoice.discountPercent}%):</span>
-                <span>{invoice.discountAmount.toFixed(2)} ر.س</span>
+                <span>{invoice.discountAmount.toFixed(2)} ل.س</span>
               </div>
               <div className="flex justify-between mb-2">
                 <span>الضريبة ({invoice.taxPercent}%):</span>
-                <span>{invoice.taxAmount.toFixed(2)} ر.س</span>
+                <span>{invoice.taxAmount.toFixed(2)} ل.س</span>
               </div>
               <div className="flex justify-between font-bold pt-2 border-t">
                 <span>الإجمالي:</span>
-                <span>{invoice.totalAmount.toFixed(2)} ر.س</span>
+                <span>{invoice.totalAmount.toFixed(2)} ل.س</span>
               </div>
               <div className="flex justify-between mt-2">
                 <span>المبلغ المدفوع:</span>
-                <span>{invoice.amountPaid.toFixed(2)} ر.س</span>
+                <span>{invoice.amountPaid.toFixed(2)} ل.س</span>
               </div>
               <div className="flex justify-between font-bold">
                 <span>المبلغ المتبقي:</span>
-                <span>{invoice.amountDue.toFixed(2)} ر.س</span>
+                <span>{invoice.amountDue.toFixed(2)} ل.س</span>
               </div>
             </div>
           </div>

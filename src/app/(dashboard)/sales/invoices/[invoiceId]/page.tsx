@@ -374,18 +374,18 @@ export default function InvoiceDetailsPage({ params }: InvoiceDetailsProps) {
                       <TableCell>{item.productBarcode || '-'}</TableCell>
                       <TableCell>{item.quantity}</TableCell>
                       <TableCell>{item.unitOfMeasure || '-'}</TableCell>
-                      <TableCell>{item.unitPrice.toFixed(2)} ر.س</TableCell>
+                      <TableCell>{item.unitPrice.toFixed(2)} ل.س</TableCell>
                       <TableCell>
                         {item.discountPercent > 0
-                          ? `${item.discountPercent}% (${item.discountAmount.toFixed(2)} ر.س)`
+                          ? `${item.discountPercent}% (${item.discountAmount.toFixed(2)} ل.س)`
                           : '-'}
                       </TableCell>
                       <TableCell>
                         {item.taxPercent > 0
-                          ? `${item.taxPercent}% (${item.taxAmount.toFixed(2)} ر.س)`
+                          ? `${item.taxPercent}% (${item.taxAmount.toFixed(2)} ل.س)`
                           : '-'}
                       </TableCell>
-                      <TableCell className="font-semibold">{item.lineTotal.toFixed(2)} ر.س</TableCell>
+                      <TableCell className="font-semibold">{item.lineTotal.toFixed(2)} ل.س</TableCell>
                     </TableRow>
                   ))
                 )}
@@ -405,28 +405,28 @@ export default function InvoiceDetailsPage({ params }: InvoiceDetailsProps) {
             <div className="space-y-2">
               <div className="flex justify-between py-1">
                 <span>المجموع الفرعي:</span>
-                <span>{invoice.subTotal.toFixed(2)} ر.س</span>
+                <span>{invoice.subTotal.toFixed(2)} ل.س</span>
               </div>
               <div className="flex justify-between py-1">
                 <span>الخصم ({invoice.discountPercent}%):</span>
-                <span>{invoice.discountAmount.toFixed(2)} ر.س</span>
+                <span>{invoice.discountAmount.toFixed(2)} ل.س</span>
               </div>
               <div className="flex justify-between py-1">
                 <span>الضريبة ({invoice.taxPercent}%):</span>
-                <span>{invoice.taxAmount.toFixed(2)} ر.س</span>
+                <span>{invoice.taxAmount.toFixed(2)} ل.س</span>
               </div>
               <Separator />
               <div className="flex justify-between py-1 font-bold">
                 <span>الإجمالي:</span>
-                <span>{invoice.totalAmount.toFixed(2)} ر.س</span>
+                <span>{invoice.totalAmount.toFixed(2)} ل.س</span>
               </div>
               <div className="flex justify-between py-1">
                 <span>المبلغ المدفوع:</span>
-                <span>{invoice.amountPaid.toFixed(2)} ر.س</span>
+                <span>{invoice.amountPaid.toFixed(2)} ل.س</span>
               </div>
               <div className="flex justify-between py-1 font-bold">
                 <span>المبلغ المتبقي:</span>
-                <span>{invoice.amountDue.toFixed(2)} ر.س</span>
+                <span>{invoice.amountDue.toFixed(2)} ل.س</span>
               </div>
             </div>
           </div>
