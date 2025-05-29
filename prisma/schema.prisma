@@ -1,0 +1,215 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// نموذج المستخدم
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  password      String?
+  image         String?
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // العلاقات
+  products      Product[]
+  customers     Customer[]
+  suppliers     Supplier[]
+  sales         Sale[]
+  purchases     Purchase[]
+}
+
+// أدوار المستخدمين
+enum Role {
+  USER
+  ADMIN
+  MANAGER
+}
+
+// نموذج المنتج
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  sku         String?  @unique
+  barcode     String?
+  price       Float
+  cost        Float?
+  quantity    Int      @default(0)
+  minQuantity Int      @default(0)
+  imageUrl    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // العلاقات
+  categoryId  String?
+  category    Category?    @relation(fields: [categoryId], references: [id])
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
+  saleItems   SaleItem[]
+  purchaseItems PurchaseItem[]
+}
+
+// نموذج فئة المنتج
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  imageUrl    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // العلاقات
+  products    Product[]
+}
+
+// نموذج العميل
+model Customer {
+  id          String    @id @default(cuid())
+  name        String
+  email       String?
+  phone       String?
+  address     String?
+  vatNumber   String?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // العلاقات
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  sales       Sale[]
+}
+
+// نموذج المورد
+model Supplier {
+  id          String    @id @default(cuid())
+  name        String
+  email       String?
+  phone       String?
+  address     String?
+  vatNumber   String?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // العلاقات
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  purchases   Purchase[]
+}
+
+// نموذج المبيعات
+model Sale {
+  id          String    @id @default(cuid())
+  invoiceNumber String?
+  date        DateTime  @default(now())
+  total       Float
+  discount    Float     @default(0)
+  tax         Float     @default(0)
+  notes       String?
+  status      SaleStatus @default(COMPLETED)
+  paymentMethod PaymentMethod @default(CASH)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // العلاقات
+  customerId  String?
+  customer    Customer? @relation(fields: [customerId], references: [id])
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  items       SaleItem[]
+}
+
+// نموذج عناصر المبيعات
+model SaleItem {
+  id          String    @id @default(cuid())
+  quantity    Int
+  price       Float
+  discount    Float     @default(0)
+  total       Float
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // العلاقات
+  saleId      String
+  sale        Sale      @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id])
+}
+
+// نموذج المشتريات
+model Purchase {
+  id          String    @id @default(cuid())
+  invoiceNumber String?
+  date        DateTime  @default(now())
+  total       Float
+  discount    Float     @default(0)
+  tax         Float     @default(0)
+  notes       String?
+  status      PurchaseStatus @default(COMPLETED)
+  paymentMethod PaymentMethod @default(CASH)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // العلاقات
+  supplierId  String?
+  supplier    Supplier? @relation(fields: [supplierId], references: [id])
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  items       PurchaseItem[]
+}
+
+// نموذج عناصر المشتريات
+model PurchaseItem {
+  id          String    @id @default(cuid())
+  quantity    Int
+  cost        Float
+  discount    Float     @default(0)
+  total       Float
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // العلاقات
+  purchaseId  String
+  purchase    Purchase  @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id])
+}
+
+// حالة المبيعات
+enum SaleStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+// حالة المشتريات
+enum PurchaseStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+  RETURNED
+}
+
+// طرق الدفع
+enum PaymentMethod {
+  CASH
+  CREDIT_CARD
+  BANK_TRANSFER
+  CHECK
+  OTHER
+}
