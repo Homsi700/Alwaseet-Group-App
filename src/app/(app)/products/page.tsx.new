@@ -1,0 +1,649 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PlusCircle, Search, Loader2, AlertCircle, Grid, List } from "lucide-react";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ProductFilters, type ProductFilters as ProductFiltersType } from '@/components/products/ProductFilters';
+import { ProductCard } from '@/components/products/ProductCard';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+// API Interaction Functions
+const fetchProducts = async (filters: ProductFiltersType = {}): Promise<any[]> => {
+  // بناء معلمات البحث
+  const params = new URLSearchParams();
+  
+  if (filters.categoryId) {
+    params.append('categoryId', filters.categoryId);
+  }
+  
+  if (filters.minPrice !== undefined) {
+    params.append('minPrice', filters.minPrice.toString());
+  }
+  
+  if (filters.maxPrice !== undefined) {
+    params.append('maxPrice', filters.maxPrice.toString());
+  }
+  
+  if (filters.inStock) {
+    params.append('inStock', 'true');
+  }
+  
+  if (filters.lowStock) {
+    params.append('lowStock', 'true');
+  }
+  
+  if (filters.sortBy) {
+    params.append('sortBy', filters.sortBy);
+  }
+  
+  if (filters.sortOrder) {
+    params.append('sortOrder', filters.sortOrder);
+  }
+  
+  const response = await fetch(`/api/products?${params.toString()}`);
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: 'فشل في جلب المنتجات' }));
+    throw new Error(errorData.message || 'فشل في جلب المنتجات');
+  }
+  return response.json();
+};
+
+const fetchCategories = async (): Promise<any[]> => {
+  const response = await fetch('/api/categories');
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: 'فشل في جلب الفئات' }));
+    throw new Error(errorData.message || 'فشل في جلب الفئات');
+  }
+  return response.json();
+};
+
+const addProduct = async (newProduct: any): Promise<any> => {
+  const response = await fetch('/api/products', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(newProduct),
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: 'فشل في إضافة المنتج' }));
+    throw new Error(errorData.message || 'فشل في إضافة المنتج');
+  }
+  
+  return response.json();
+};
+
+const updateProduct = async ({ productId, data }: { productId: string; data: any }): Promise<any> => {
+  const response = await fetch(`/api/products/${productId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: 'فشل في تحديث المنتج' }));
+    throw new Error(errorData.message || 'فشل في تحديث المنتج');
+  }
+  
+  return response.json();
+};
+
+const deleteProduct = async (productId: string): Promise<any> => {
+  const response = await fetch(`/api/products/${productId}`, {
+    method: 'DELETE',
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: 'فشل في حذف المنتج' }));
+    throw new Error(errorData.message || 'فشل في حذف المنتج');
+  }
+  
+  return response.json();
+};
+
+// Form component for Add/Edit Product
+const ProductFormFields = ({ 
+  product, 
+  setProduct, 
+  categories, 
+  isLoadingCategories,
+  isErrorCategories
+}: { 
+  product: any, 
+  setProduct: (name: string, value: any) => void, 
+  categories: any[], 
+  isLoadingCategories: boolean,
+  isErrorCategories: boolean
+}) => (
+  <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-2 rtl:pl-2 rtl:pr-0">
+    <div className="grid grid-cols-4 items-center gap-4">
+      <Label htmlFor="name" className="text-left rtl:text-right">الاسم</Label>
+      <Input id="name" value={product.name || ""} onChange={(e) => setProduct('name', e.target.value)} className="col-span-3 rounded-md" placeholder="اسم المنتج" />
+    </div>
+    <div className="grid grid-cols-4 items-center gap-4">
+      <Label htmlFor="barcode" className="text-left rtl:text-right">الباركود</Label>
+      <Input id="barcode" value={product.barcode || ""} onChange={(e) => setProduct('barcode', e.target.value)} className="col-span-3 rounded-md" placeholder="باركود المنتج" />
+    </div>
+     <div className="grid grid-cols-4 items-start gap-4">
+      <Label htmlFor="description" className="text-left rtl:text-right mt-2">الوصف</Label>
+      <Textarea id="description" value={product.description || ""} onChange={(e) => setProduct('description', e.target.value)} className="col-span-3 rounded-md" placeholder="وصف مختصر للمنتج" />
+    </div>
+    <div className="grid grid-cols-4 items-center gap-4">
+      <Label htmlFor="cost" className="text-left rtl:text-right">سعر التكلفة</Label>
+      <Input id="cost" type="number" value={product.cost || ""} onChange={(e) => setProduct('cost', parseFloat(e.target.value) || 0)} className="col-span-3 rounded-md" placeholder="٠٫٠٠" />
+    </div>
+    <div className="grid grid-cols-4 items-center gap-4">
+      <Label htmlFor="price" className="text-left rtl:text-right">سعر البيع</Label>
+      <Input id="price" type="number" value={product.price || ""} onChange={(e) => setProduct('price', parseFloat(e.target.value) || 0)} className="col-span-3 rounded-md" placeholder="٠٫٠٠" />
+    </div>
+    <div className="grid grid-cols-4 items-center gap-4">
+      <Label htmlFor="quantity" className="text-left rtl:text-right">الكمية</Label>
+      <Input id="quantity" type="number" value={product.quantity || ""} onChange={(e) => setProduct('quantity', parseInt(e.target.value) || 0)} className="col-span-3 rounded-md" placeholder="٠" />
+    </div>
+    <div className="grid grid-cols-4 items-center gap-4">
+      <Label htmlFor="minQuantity" className="text-left rtl:text-right">حد أدنى للكمية</Label>
+      <Input id="minQuantity" type="number" value={product.minQuantity || ""} onChange={(e) => setProduct('minQuantity', parseInt(e.target.value) || 0)} className="col-span-3 rounded-md" placeholder="٠ (لتنبيهات المخزون)" />
+    </div>
+     <div className="grid grid-cols-4 items-center gap-4">
+      <Label htmlFor="category" className="text-left rtl:text-right">الفئة</Label>
+      <Select
+        value={product.categoryId?.toString() || ""}
+        onValueChange={(value) => setProduct('categoryId', value)}
+        disabled={isLoadingCategories || isErrorCategories}
+      >
+        <SelectTrigger className="col-span-3 rounded-md">
+          <SelectValue placeholder={isLoadingCategories ? "جاري تحميل الفئات..." : (isErrorCategories ? "خطأ في تحميل الفئات" : "اختر فئة")} />
+        </SelectTrigger>
+        <SelectContent>
+          {categories && categories.length > 0 ? (
+            categories.map(cat => (
+              <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+            ))
+          ) : (
+            <SelectItem value="no-categories" disabled>لا توجد فئات متاحة</SelectItem>
+          )}
+        </SelectContent>
+      </Select>
+    </div>
+    <div className="grid grid-cols-4 items-center gap-4">
+      <Label htmlFor="sku" className="text-left rtl:text-right">رمز المنتج (SKU)</Label>
+      <Input id="sku" value={product.sku || ""} onChange={(e) => setProduct('sku', e.target.value)} className="col-span-3 rounded-md" placeholder="رمز المنتج الخاص" />
+    </div>
+    <div className="grid grid-cols-4 items-center gap-4">
+      <Label htmlFor="imageUrl" className="text-left rtl:text-right">رابط الصورة</Label>
+      <Input id="imageUrl" value={product.imageUrl || ""} onChange={(e) => setProduct('imageUrl', e.target.value)} className="col-span-3 rounded-md" placeholder="https://example.com/image.png" />
+    </div>
+  </div>
+);
+
+export default function ProductListPage() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [currentProduct, setCurrentProduct] = useState<any>({});
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [filters, setFilters] = useState<ProductFiltersType>({
+    sortBy: 'name',
+    sortOrder: 'asc',
+  });
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  // Debounce search term
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+  
+  // تحديث الفلاتر مع مصطلح البحث
+  useEffect(() => {
+    if (debouncedSearchTerm) {
+      setFilters(prev => ({ ...prev, searchTerm: debouncedSearchTerm }));
+    } else {
+      const { searchTerm, ...restFilters } = filters;
+      setFilters(restFilters);
+    }
+  }, [debouncedSearchTerm]);
+  
+  // استخدام React Query لجلب البيانات
+  const { 
+    data: products = [], 
+    isLoading: isLoadingProducts, 
+    isError: isErrorProducts, 
+    error: productsError 
+  } = useQuery({
+    queryKey: ['products', filters],
+    queryFn: () => fetchProducts(filters),
+  });
+  
+  const { 
+    data: categories = [], 
+    isLoading: isLoadingCategories, 
+    isError: isErrorCategories 
+  } = useQuery({
+    queryKey: ['categories'],
+    queryFn: fetchCategories,
+  });
+  
+  // Mutations
+  const createProductMutation = useMutation({
+    mutationFn: addProduct,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      setIsModalOpen(false);
+      toast({
+        title: 'تم إضافة المنتج بنجاح',
+        variant: 'default',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'خطأ',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+  
+  const updateProductMutation = useMutation({
+    mutationFn: updateProduct,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      setIsModalOpen(false);
+      toast({
+        title: 'تم تحديث المنتج بنجاح',
+        variant: 'default',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'خطأ',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+  
+  const deleteProductMutation = useMutation({
+    mutationFn: deleteProduct,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      setIsDeleteDialogOpen(false);
+      toast({
+        title: 'تم حذف المنتج بنجاح',
+        variant: 'default',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'خطأ',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+  
+  // تحديث حقل في المنتج الحالي
+  const updateProductField = (field: string, value: any) => {
+    setCurrentProduct(prev => ({ ...prev, [field]: value }));
+  };
+  
+  // فتح نافذة إضافة منتج جديد
+  const handleAddProduct = () => {
+    setCurrentProduct({});
+    setIsModalOpen(true);
+  };
+  
+  // فتح نافذة تعديل منتج
+  const handleEditProduct = (product: any) => {
+    setCurrentProduct(product);
+    setIsModalOpen(true);
+  };
+  
+  // فتح نافذة حذف منتج
+  const handleDeleteProduct = (productId: string) => {
+    setSelectedProductId(productId);
+    setIsDeleteDialogOpen(true);
+  };
+  
+  // حفظ المنتج (إضافة أو تعديل)
+  const handleSaveProduct = async () => {
+    if (!currentProduct.name) {
+      toast({
+        title: 'خطأ',
+        description: 'يرجى إدخال اسم المنتج',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    try {
+      if (currentProduct.id) {
+        // تحديث منتج موجود
+        await updateProductMutation.mutateAsync({
+          productId: currentProduct.id,
+          data: currentProduct,
+        });
+      } else {
+        // إضافة منتج جديد
+        await createProductMutation.mutateAsync(currentProduct);
+      }
+    } catch (error) {
+      console.error('خطأ في حفظ المنتج:', error);
+    }
+  };
+  
+  // تأكيد حذف المنتج
+  const confirmDeleteProduct = async () => {
+    if (!selectedProductId) return;
+    
+    try {
+      await deleteProductMutation.mutateAsync(selectedProductId);
+    } catch (error) {
+      console.error('خطأ في حذف المنتج:', error);
+    }
+  };
+  
+  // تحديث الفلاتر
+  const handleFilterChange = (newFilters: ProductFiltersType) => {
+    setFilters(prev => ({ ...prev, ...newFilters }));
+  };
+  
+  // عرض حالة التحميل
+  if (isLoadingProducts && !products.length) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <h1 className="text-3xl font-bold text-foreground">إدارة المنتجات</h1>
+          <Button className="rounded-md bg-primary hover:bg-primary/90 text-primary-foreground" disabled>
+            <PlusCircle className="ml-2 rtl:mr-2 h-5 w-5 icon-directional" /> إضافة منتج جديد
+          </Button>
+        </div>
+        
+        <Card className="shadow-lg rounded-lg border-border">
+          <CardHeader>
+            <CardTitle>قائمة المنتجات</CardTitle>
+            <CardDescription>
+              إدارة المنتجات، الأسعار، والمخزون
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex justify-center items-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary ml-2" />
+              <span>جاري تحميل البيانات...</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  
+  // عرض حالة الخطأ
+  if (isErrorProducts) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <h1 className="text-3xl font-bold text-foreground">إدارة المنتجات</h1>
+          <Button className="rounded-md bg-primary hover:bg-primary/90 text-primary-foreground" onClick={handleAddProduct}>
+            <PlusCircle className="ml-2 rtl:mr-2 h-5 w-5 icon-directional" /> إضافة منتج جديد
+          </Button>
+        </div>
+        
+        <Card className="shadow-lg rounded-lg border-border">
+          <CardHeader>
+            <CardTitle>قائمة المنتجات</CardTitle>
+            <CardDescription>
+              إدارة المنتجات، الأسعار، والمخزون
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex justify-center items-center py-12 text-destructive">
+              <AlertCircle className="h-8 w-8 ml-2" />
+              <span>حدث خطأ أثناء تحميل البيانات: {productsError?.message}</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-3xl font-bold text-foreground">إدارة المنتجات</h1>
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <DialogTrigger asChild>
+            <Button className="rounded-md bg-primary hover:bg-primary/90 text-primary-foreground" onClick={handleAddProduct}>
+              <PlusCircle className="ml-2 rtl:mr-2 h-5 w-5 icon-directional" /> إضافة منتج جديد
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>{currentProduct.id ? 'تعديل منتج' : 'إضافة منتج جديد'}</DialogTitle>
+              <DialogDescription>
+                {currentProduct.id ? 'قم بتعديل بيانات المنتج. اضغط على حفظ عند الانتهاء.' : 'أدخل بيانات المنتج الجديد. اضغط على حفظ عند الانتهاء.'}
+              </DialogDescription>
+            </DialogHeader>
+            <ProductFormFields
+              product={currentProduct}
+              setProduct={updateProductField}
+              categories={categories}
+              isLoadingCategories={isLoadingCategories}
+              isErrorCategories={isErrorCategories}
+            />
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsModalOpen(false)}
+                disabled={createProductMutation.isPending || updateProductMutation.isPending}
+              >
+                إلغاء
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSaveProduct}
+                disabled={createProductMutation.isPending || updateProductMutation.isPending}
+              >
+                {(createProductMutation.isPending || updateProductMutation.isPending) && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                حفظ
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+      
+      <Card className="shadow-lg rounded-lg border-border">
+        <CardHeader>
+          <CardTitle>قائمة المنتجات</CardTitle>
+          <CardDescription>
+            إدارة المنتجات، الأسعار، والمخزون
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="بحث في المنتجات..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-3 pr-10 w-full"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={viewMode === 'grid' ? 'default' : 'outline'}
+                size="icon"
+                onClick={() => setViewMode('grid')}
+                className="h-9 w-9"
+              >
+                <Grid className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'outline'}
+                size="icon"
+                onClick={() => setViewMode('list')}
+                className="h-9 w-9"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          
+          <ProductFilters
+            categories={categories}
+            onFilterChange={handleFilterChange}
+            isLoadingCategories={isLoadingCategories}
+          />
+          
+          {isLoadingProducts && (
+            <div className="flex justify-center items-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-primary ml-2" />
+              <span>جاري تحميل البيانات...</span>
+            </div>
+          )}
+          
+          {!isLoadingProducts && products.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="bg-muted/50 p-4 rounded-full mb-4">
+                <Search className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-medium">لا توجد منتجات</h3>
+              <p className="text-muted-foreground mt-1">
+                لم يتم العثور على منتجات مطابقة للبحث أو الفلاتر المحددة.
+              </p>
+              <Button
+                variant="outline"
+                className="mt-4"
+                onClick={() => {
+                  setSearchTerm('');
+                  setFilters({
+                    sortBy: 'name',
+                    sortOrder: 'asc',
+                  });
+                }}
+              >
+                إعادة تعيين الفلاتر
+              </Button>
+            </div>
+          )}
+          
+          {!isLoadingProducts && products.length > 0 && (
+            <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as 'grid' | 'list')}>
+              <TabsContent value="grid" className="mt-0">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {products.map((product) => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      onEdit={handleEditProduct}
+                      onDelete={handleDeleteProduct}
+                    />
+                  ))}
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="list" className="mt-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>اسم المنتج</TableHead>
+                        <TableHead>الباركود</TableHead>
+                        <TableHead className="text-center">الكمية</TableHead>
+                        <TableHead className="text-right rtl:text-left">سعر البيع</TableHead>
+                        <TableHead className="text-right rtl:text-left">سعر التكلفة</TableHead>
+                        <TableHead className="text-center">الإجراءات</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {products.map((product) => (
+                        <TableRow key={product.id}>
+                          <TableCell className="font-medium">{product.name}</TableCell>
+                          <TableCell>{product.barcode || '-'}</TableCell>
+                          <TableCell className="text-center">
+                            <span className={`${product.quantity <= 0 ? 'text-destructive' : (product.quantity <= (product.minQuantity || 5) ? 'text-yellow-600' : 'text-green-600')}`}>
+                              {product.quantity}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right rtl:text-left">{product.price?.toFixed(2) || '0.00'}</TableCell>
+                          <TableCell className="text-right rtl:text-left">{product.cost?.toFixed(2) || '0.00'}</TableCell>
+                          <TableCell className="text-center">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="rounded-md"
+                              onClick={() => handleEditProduct(product)}
+                            >
+                              تعديل
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="rounded-md text-destructive"
+                              onClick={() => handleDeleteProduct(product.id)}
+                            >
+                              حذف
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </TabsContent>
+            </Tabs>
+          )}
+        </CardContent>
+      </Card>
+      
+      {/* نافذة تأكيد الحذف */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>تأكيد الحذف</DialogTitle>
+            <DialogDescription>
+              هل أنت متأكد من رغبتك في حذف هذا المنتج؟ لا يمكن التراجع عن هذا الإجراء.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+              disabled={deleteProductMutation.isPending}
+            >
+              إلغاء
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={confirmDeleteProduct}
+              disabled={deleteProductMutation.isPending}
+            >
+              {deleteProductMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+              حذف
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
