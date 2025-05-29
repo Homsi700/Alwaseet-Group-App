@@ -2,6 +2,20 @@
 import { NextResponse } from 'next/server';
 import { executeQuery } from '@/lib/db';
 import type { Product } from '@/types';
+import fs from 'fs';
+import path from 'path';
+
+// Path to the JSON file for storing products
+const dataFilePath = path.join(process.cwd(), 'data', 'products.json');
+
+// Ensure the data directory exists
+try {
+  if (!fs.existsSync(path.join(process.cwd(), 'data'))) {
+    fs.mkdirSync(path.join(process.cwd(), 'data'), { recursive: true });
+  }
+} catch (error) {
+  console.error("Error creating data directory:", error);
+}
 
 // Default mock data
 const defaultProducts: Product[] = [
@@ -10,52 +24,43 @@ const defaultProducts: Product[] = [
   { productId: 3, id: "prod_3", name: "حليب طازج (1 لتر)", barcode: "MLK003", purchasePrice: 0.8, salePrice: 1.5, quantity: 75, expirationDate: "2024-10-15", categoryId: 3, categoryName: "ألبان", supplier: "مزرعة فريش", companyId: 1, isActive: true, unitOfMeasure: "لتر" },
 ];
 
-// Global variable to store products in memory on the server
-let globalProducts: Product[] | null = null;
-
-// Function to get products from localStorage or use default
+// Function to get products from file or use default
 const getProducts = (): Product[] => {
-  // If we already have products in memory, use those
-  if (globalProducts !== null) {
-    return [...globalProducts];
-  }
-  
-  // For client-side, try to get from localStorage
-  if (typeof window !== 'undefined') {
-    try {
-      const storedProducts = localStorage.getItem('mockProducts');
-      if (storedProducts) {
-        const parsedProducts = JSON.parse(storedProducts);
-        globalProducts = parsedProducts; // Cache in memory
-        return parsedProducts;
-      }
-    } catch (error) {
-      console.error("Error reading products from localStorage:", error);
+  try {
+    // Check if the file exists
+    if (fs.existsSync(dataFilePath)) {
+      const fileData = fs.readFileSync(dataFilePath, 'utf8');
+      const parsedProducts = JSON.parse(fileData);
+      console.log("[products/[productId]/route.ts] Loaded products from file, count:", parsedProducts.length);
+      return parsedProducts;
     }
+  } catch (error) {
+    console.error("Error reading products from file:", error);
   }
   
   // Default fallback
-  globalProducts = [...defaultProducts];
+  try {
+    fs.writeFileSync(dataFilePath, JSON.stringify(defaultProducts, null, 2), 'utf8');
+    console.log("[products/[productId]/route.ts] Saved default products to file");
+  } catch (error) {
+    console.error("Error saving default products to file:", error);
+  }
+  
   return [...defaultProducts]; // Return a copy of default products
 };
 
-// Function to save products to localStorage
+// Function to save products to file
 const saveProducts = (products: Product[]) => {
-  // Update in-memory cache
-  globalProducts = [...products];
-  
-  // For client-side, save to localStorage
-  if (typeof window !== 'undefined') {
-    try {
-      localStorage.setItem('mockProducts', JSON.stringify(products));
-      console.log("[products/[productId]/route.ts] Saved products to localStorage, count:", products.length);
-    } catch (error) {
-      console.error("Error saving products to localStorage:", error);
-    }
+  // Save to file
+  try {
+    fs.writeFileSync(dataFilePath, JSON.stringify(products, null, 2), 'utf8');
+    console.log("[products/[productId]/route.ts] Saved products to file, count:", products.length);
+  } catch (error) {
+    console.error("Error saving products to file:", error);
   }
 };
 
-// Initialize products from localStorage or defaults
+// Initialize products from file or defaults
 let mockProducts: Product[] = getProducts();
 
 
@@ -128,9 +133,9 @@ export async function PUT(request: Request, { params }: { params: { productId: s
     
     mockProducts[productIndex] = updatedProduct;
     
-    // Save to localStorage
+    // Save to file
     saveProducts(mockProducts);
-    console.log(`[products/[productId]/route.ts] Saved updated product to localStorage, ID: ${productId}`);
+    console.log(`[products/[productId]/route.ts] Saved updated product to file, ID: ${productId}`);
 
     return NextResponse.json(mockProducts[productIndex]);
   } catch (error) {
@@ -152,9 +157,9 @@ export async function DELETE(request: Request, { params }: { params: { productId
     }
     mockProducts.splice(productIndex, 1);
     
-    // Save to localStorage
+    // Save to file
     saveProducts(mockProducts);
-    console.log(`[products/[productId]/route.ts] Saved products to localStorage after deleting product ID: ${productId}`);
+    console.log(`[products/[productId]/route.ts] Saved products to file after deleting product ID: ${productId}`);
 
     return NextResponse.json({ message: "تم حذف المنتج بنجاح" });
   } catch (error) {

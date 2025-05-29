@@ -1,16 +1,18 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PlusCircle, MinusCircle, Trash2, Percent, ScanLine, Users, FileText, XCircle } from "lucide-react";
+import { PlusCircle, MinusCircle, Trash2, Percent, ScanLine, Users, FileText, XCircle, Loader2 } from "lucide-react";
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import type { Product } from '@/types';
+import { useQuery } from '@tanstack/react-query';
 
 interface CartItem {
   id: string;
@@ -20,20 +22,50 @@ interface CartItem {
   barcode?: string;
 }
 
-// بيانات منتجات وهمية - في تطبيق حقيقي، ستأتي هذه من قاعدة بيانات/API
-const mockProducts: CartItem[] = [
-  { id: "prod_1", name: "تفاح عضوي (١ كجم)", price: 3.99, quantity: 0, barcode: "123456789012" },
-  { id: "prod_2", name: "رغيف خبز قمح كامل", price: 2.49, quantity: 0, barcode: "987654321098" },
-  { id: "prod_3", name: "حليب طازج (١ لتر)", price: 1.50, quantity: 0, barcode: "112233445566" },
-  { id: "prod_4", name: "جبنة شيدر (٢٥٠ جم)", price: 4.20, quantity: 0, barcode: "665544332211" },
-];
+// دالة لجلب المنتجات من API
+const fetchProducts = async (): Promise<Product[]> => {
+  const response = await fetch(`/api/products`);
+  if (!response.ok) {
+    throw new Error('فشل في جلب المنتجات');
+  }
+  return response.json();
+};
 
 export default function PointOfSalePage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [barcode, setBarcode] = useState("");
   const [customer, setCustomer] = useState("عميل عابر"); 
   const [discountPercent, setDiscountPercent] = useState(0);
+  const [invoiceNumber, setInvoiceNumber] = useState<string>(() => {
+    // إنشاء رقم فاتورة عشوائي عند تحميل الصفحة
+    return Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+  });
   const { toast } = useToast();
+  
+  // مرجع للحقل النصي للباركود
+  const barcodeInputRef = useRef<HTMLInputElement>(null);
+  
+  // استخدام React Query لجلب المنتجات
+  const { data: products = [], isLoading, isError, refetch } = useQuery<Product[], Error>({
+    queryKey: ['products'],
+    queryFn: fetchProducts,
+    staleTime: 1000, // 1 second
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+  });
+  
+  // إعادة تحميل المنتجات عند تحميل الصفحة
+  useEffect(() => {
+    refetch();
+    console.log("[pos/page.tsx] Refetching products on page load");
+  }, [refetch]);
+  
+  // التركيز على حقل الباركود عند تحميل الصفحة وبعد إضافة منتج
+  useEffect(() => {
+    if (barcodeInputRef.current) {
+      barcodeInputRef.current.focus();
+    }
+  }, [cart.length]);
 
   const subtotal = useMemo(() => cart.reduce((acc, item) => acc + item.price * item.quantity, 0), [cart]);
   const discountAmount = useMemo(() => (subtotal * discountPercent) / 100, [subtotal, discountPercent]);
@@ -43,9 +75,19 @@ export default function PointOfSalePage() {
     e.preventDefault();
     if (!barcode.trim()) return;
 
-    const product = mockProducts.find(p => p.barcode === barcode);
+    // البحث عن المنتج باستخدام الباركود
+    const product = products.find(p => p.barcode === barcode);
     if (product) {
-      addToCart(product);
+      // تحويل المنتج إلى عنصر في السلة
+      const cartItem: CartItem = {
+        id: product.id || `prod_${product.productId}`,
+        name: product.name,
+        price: product.salePrice,
+        quantity: 0,
+        barcode: product.barcode
+      };
+      
+      addToCart(cartItem);
       toast({ title: "تمت إضافة المنتج", description: `تمت إضافة ${product.name} إلى السلة.` });
     } else {
       toast({ title: "المنتج غير موجود", description: `لم يتم العثور على منتج بالباركود: ${barcode}`, variant: "destructive" });
@@ -85,7 +127,12 @@ export default function PointOfSalePage() {
 
   return (
     <div className="container mx-auto p-0 md:p-4">
-      <h1 className="text-3xl font-bold mb-6 text-foreground">نقطة بيع سريعة</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-foreground">نقطة بيع سريعة</h1>
+        <div className="text-lg font-semibold bg-muted p-2 rounded-md">
+          فاتورة رقم: <span className="text-primary">{invoiceNumber}</span>
+        </div>
+      </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <Card className="shadow-lg rounded-lg">
@@ -97,17 +144,51 @@ export default function PointOfSalePage() {
                 <div className="flex-grow">
                   <Label htmlFor="barcode" className="mb-1 block">الباركود</Label>
                   <Input
-                    id="barcode" type="text" value={barcode} onChange={(e) => setBarcode(e.target.value)}
-                    placeholder="امسح أو اكتب الباركود..." className="rounded-md"
+                    id="barcode" 
+                    type="text" 
+                    value={barcode} 
+                    onChange={(e) => setBarcode(e.target.value)}
+                    placeholder="امسح أو اكتب الباركود..." 
+                    className="rounded-md"
+                    ref={barcodeInputRef}
+                    autoFocus
                   />
                 </div>
                 <Button type="submit" className="rounded-md bg-primary hover:bg-primary/90 text-primary-foreground">
                   <ScanLine className="ml-2 rtl:mr-2 h-5 w-5 icon-directional" /> إضافة
                 </Button>
               </form>
-              <Button variant="outline" className="w-full rounded-md">
-                <PlusCircle className="ml-2 rtl:mr-2 h-5 w-5 icon-directional" /> تصفح المنتجات / إضافة يدوية
-              </Button>
+              {isLoading ? (
+                <Button variant="outline" className="w-full rounded-md" disabled>
+                  <Loader2 className="ml-2 rtl:mr-2 h-5 w-5 animate-spin icon-directional" /> جاري تحميل المنتجات...
+                </Button>
+              ) : isError ? (
+                <Button variant="outline" className="w-full rounded-md text-destructive" disabled>
+                  <XCircle className="ml-2 rtl:mr-2 h-5 w-5 icon-directional" /> خطأ في تحميل المنتجات
+                </Button>
+              ) : (
+                <div className="space-y-2">
+                  <Button variant="outline" className="w-full rounded-md">
+                    <PlusCircle className="ml-2 rtl:mr-2 h-5 w-5 icon-directional" /> تصفح المنتجات / إضافة يدوية
+                  </Button>
+                  <div className="flex flex-col items-center space-y-2">
+                    <div className="text-xs text-muted-foreground text-center">
+                      تم تحميل {products.length} منتج من قاعدة البيانات
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => {
+                        refetch();
+                        toast({ title: "تحديث المنتجات", description: "تم تحديث قائمة المنتجات" });
+                      }} 
+                      className="text-xs"
+                    >
+                      <Loader2 className="ml-2 rtl:mr-2 h-3 w-3 icon-directional" /> تحديث قائمة المنتجات
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -201,12 +282,227 @@ export default function PointOfSalePage() {
               </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-2">
-              <Button size="lg" className="w-full rounded-md bg-accent hover:bg-accent/90 text-accent-foreground">
-                معالجة الدفع
+              <Button 
+                size="lg" 
+                className="w-full rounded-md bg-accent hover:bg-accent/90 text-accent-foreground"
+                onClick={() => {
+                  if (cart.length === 0) {
+                    toast({ 
+                      title: "لا توجد منتجات", 
+                      description: "الرجاء إضافة منتجات إلى السلة أولاً", 
+                      variant: "destructive" 
+                    });
+                    return;
+                  }
+                  
+                  // إنشاء نافذة طباعة
+                  const printWindow = window.open('', '_blank');
+                  if (!printWindow) {
+                    toast({ 
+                      title: "خطأ في الطباعة", 
+                      description: "لم نتمكن من فتح نافذة الطباعة. يرجى التحقق من إعدادات المتصفح.", 
+                      variant: "destructive" 
+                    });
+                    return;
+                  }
+                  
+                  // إنشاء محتوى الفاتورة
+                  const invoiceDate = new Date().toLocaleDateString('ar-SA');
+                  const invoiceTime = new Date().toLocaleTimeString('ar-SA');
+                  
+                  printWindow.document.write(`
+                    <html dir="rtl">
+                    <head>
+                      <title>فاتورة رقم ${invoiceNumber}</title>
+                      <style>
+                        @page {
+                          size: 80mm auto; /* عرض 80 ملم وارتفاع تلقائي - مناسب لطابعات الكاشير */
+                          margin: 0mm;
+                        }
+                        body {
+                          font-family: Arial, sans-serif;
+                          margin: 0;
+                          padding: 5mm;
+                          direction: rtl;
+                          width: 70mm; /* عرض المحتوى */
+                          font-size: 10pt; /* حجم خط أصغر */
+                        }
+                        .invoice-header {
+                          text-align: center;
+                          margin-bottom: 5mm;
+                        }
+                        .invoice-header h1 {
+                          font-size: 12pt;
+                          margin: 0;
+                          padding: 0;
+                        }
+                        .invoice-header p {
+                          font-size: 10pt;
+                          margin: 2mm 0;
+                        }
+                        .invoice-details {
+                          margin-bottom: 5mm;
+                          font-size: 9pt;
+                        }
+                        .invoice-details p {
+                          margin: 1mm 0;
+                        }
+                        table {
+                          width: 100%;
+                          border-collapse: collapse;
+                          font-size: 8pt;
+                        }
+                        th, td {
+                          padding: 1mm 2mm;
+                          text-align: right;
+                          border-bottom: 1px dotted #000;
+                        }
+                        .total-section {
+                          margin-top: 5mm;
+                          text-align: left;
+                          font-size: 9pt;
+                        }
+                        .total-section p {
+                          margin: 1mm 0;
+                        }
+                        .footer {
+                          margin-top: 5mm;
+                          text-align: center;
+                          font-size: 8pt;
+                          border-top: 1px dotted #000;
+                          padding-top: 2mm;
+                        }
+                        .footer p {
+                          margin: 1mm 0;
+                        }
+                        .divider {
+                          border-top: 1px dashed #000;
+                          margin: 3mm 0;
+                        }
+                        @media print {
+                          button {
+                            display: none;
+                          }
+                        }
+                      </style>
+                    </head>
+                    <body>
+                      <div class="invoice-header">
+                        <h1>مجموعة الوسيط جروب</h1>
+                        <p>فاتورة ضريبية مبسطة</p>
+                      </div>
+                      
+                      <div class="divider"></div>
+                      
+                      <div class="invoice-details">
+                        <p><strong>رقم الفاتورة:</strong> ${invoiceNumber}</p>
+                        <p><strong>التاريخ:</strong> ${invoiceDate}</p>
+                        <p><strong>الوقت:</strong> ${invoiceTime}</p>
+                        <p><strong>العميل:</strong> ${customer}</p>
+                      </div>
+                      
+                      <div class="divider"></div>
+                      
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>المنتج</th>
+                            <th>الكمية</th>
+                            <th>السعر</th>
+                            <th>الإجمالي</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          ${cart.map((item) => `
+                            <tr>
+                              <td>${item.name}</td>
+                              <td>${item.quantity}</td>
+                              <td>${item.price.toFixed(2)}</td>
+                              <td>${(item.price * item.quantity).toFixed(2)}</td>
+                            </tr>
+                          `).join('')}
+                        </tbody>
+                      </table>
+                      
+                      <div class="divider"></div>
+                      
+                      <div class="total-section">
+                        <p><strong>المجموع:</strong> ${subtotal.toFixed(2)} ر.س</p>
+                        <p><strong>الخصم (${discountPercent}%):</strong> ${discountAmount.toFixed(2)} ر.س</p>
+                        <p><strong>الإجمالي:</strong> ${totalAmount.toFixed(2)} ر.س</p>
+                      </div>
+                      
+                      <div class="footer">
+                        <p>شكراً لتسوقكم معنا!</p>
+                        <p>للاستفسارات: 0123456789</p>
+                      </div>
+                      
+                      <div style="text-align: center; margin-top: 5mm;">
+                        <button onclick="window.print(); setTimeout(() => window.close(), 500);">طباعة الفاتورة</button>
+                      </div>
+                    </body>
+                    </html>
+                  `);
+                  
+                  // إغلاق الفاتورة الحالية وإنشاء فاتورة جديدة
+                  setCart([]);
+                  setDiscountPercent(0);
+                  setCustomer("عميل عابر");
+                  
+                  // إنشاء رقم فاتورة جديد
+                  const newInvoiceNumber = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+                  setInvoiceNumber(newInvoiceNumber);
+                  
+                  toast({ 
+                    title: "تم إنشاء الفاتورة", 
+                    description: `تم إنشاء الفاتورة رقم ${invoiceNumber} بنجاح` 
+                  });
+                }}
+                disabled={cart.length === 0}
+              >
+                معالجة الدفع وطباعة الفاتورة
               </Button>
-              <Button variant="outline" size="lg" className="w-full rounded-md">
-                <FileText className="ml-2 rtl:mr-2 h-5 w-5 icon-directional" /> حفظ كمسودة
-              </Button>
+              
+              <div className="flex gap-2 w-full">
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  className="flex-1 rounded-md"
+                  onClick={() => {
+                    if (cart.length === 0) {
+                      toast({ 
+                        title: "لا توجد منتجات", 
+                        description: "السلة فارغة بالفعل", 
+                        variant: "destructive" 
+                      });
+                      return;
+                    }
+                    
+                    setCart([]);
+                    setDiscountPercent(0);
+                    setCustomer("عميل عابر");
+                    
+                    // إنشاء رقم فاتورة جديد
+                    const newInvoiceNumber = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+                    setInvoiceNumber(newInvoiceNumber);
+                    
+                    toast({ 
+                      title: "تم إلغاء الفاتورة", 
+                      description: "تم إلغاء الفاتورة الحالية وإنشاء فاتورة جديدة" 
+                    });
+                  }}
+                >
+                  <XCircle className="ml-2 rtl:mr-2 h-5 w-5 icon-directional" /> إلغاء الفاتورة
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  className="flex-1 rounded-md"
+                >
+                  <FileText className="ml-2 rtl:mr-2 h-5 w-5 icon-directional" /> حفظ كمسودة
+                </Button>
+              </div>
             </CardFooter>
           </Card>
         </div>

@@ -296,10 +296,19 @@ export default function ProductListPage() {
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
-  const { data: products = [], isLoading: isLoadingProducts, isError: isErrorProducts, error: productsError } = useQuery<Product[], Error>({
+  const { data: products = [], isLoading: isLoadingProducts, isError: isErrorProducts, error: productsError, refetch: refetchProducts } = useQuery<Product[], Error>({
     queryKey: ['products', debouncedSearchTerm],
     queryFn: () => fetchProducts(debouncedSearchTerm),
+    staleTime: 1000, // 1 second
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
+  
+  // إعادة تحميل المنتجات عند تحميل الصفحة
+  useEffect(() => {
+    refetchProducts();
+    console.log("[products/page.tsx] Refetching products on page load");
+  }, [refetchProducts]);
 
   const { data: categories = [] as Category[], isLoading: isLoadingCategories, isError: isErrorCategories, error: categoriesError } = useQuery({
     queryKey: ['categories'],
@@ -497,9 +506,21 @@ export default function ProductListPage() {
       {process.env.NODE_ENV === 'development' && <DebugInfo />}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-3xl font-bold text-foreground">قائمة المنتجات</h1>
-        <Button onClick={openModalForAdd} className="rounded-md bg-primary hover:bg-primary/90 text-primary-foreground">
-          <PlusCircle className="ml-2 rtl:mr-2 h-5 w-5 icon-directional" /> إضافة منتج جديد
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => {
+              refetchProducts();
+              toast({ title: "تحديث المنتجات", description: "تم تحديث قائمة المنتجات" });
+            }} 
+            variant="outline" 
+            className="rounded-md"
+          >
+            <Loader2 className="ml-2 rtl:mr-2 h-5 w-5 icon-directional" /> تحديث
+          </Button>
+          <Button onClick={openModalForAdd} className="rounded-md bg-primary hover:bg-primary/90 text-primary-foreground">
+            <PlusCircle className="ml-2 rtl:mr-2 h-5 w-5 icon-directional" /> إضافة منتج جديد
+          </Button>
+        </div>
       </div>
 
       <Card className="shadow-lg rounded-lg">

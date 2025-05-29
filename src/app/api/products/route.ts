@@ -2,6 +2,8 @@
 import { NextResponse } from 'next/server';
 import { executeQuery } from '@/lib/db';
 import type { Product } from '@/types';
+import fs from 'fs';
+import path from 'path';
 
 // Default mock data
 const defaultProducts: Product[] = [
@@ -13,49 +15,67 @@ const defaultProducts: Product[] = [
 // Global variable to store products in memory on the server
 let globalProducts: Product[] | null = null;
 
-// Function to get products from localStorage or use default
+// Path to the JSON file for storing products
+const dataFilePath = path.join(process.cwd(), 'data', 'products.json');
+
+// Ensure the data directory exists
+try {
+  if (!fs.existsSync(path.join(process.cwd(), 'data'))) {
+    fs.mkdirSync(path.join(process.cwd(), 'data'), { recursive: true });
+  }
+} catch (error) {
+  console.error("Error creating data directory:", error);
+}
+
+// Function to get products from file or use default
 const getProducts = (): Product[] => {
   // If we already have products in memory, use those
   if (globalProducts !== null) {
     return [...globalProducts];
   }
   
-  // For client-side, try to get from localStorage
-  if (typeof window !== 'undefined') {
-    try {
-      const storedProducts = localStorage.getItem('mockProducts');
-      if (storedProducts) {
-        const parsedProducts = JSON.parse(storedProducts);
-        globalProducts = parsedProducts; // Cache in memory
-        return parsedProducts;
-      }
-    } catch (error) {
-      console.error("Error reading products from localStorage:", error);
+  try {
+    // Check if the file exists
+    if (fs.existsSync(dataFilePath)) {
+      const fileData = fs.readFileSync(dataFilePath, 'utf8');
+      const parsedProducts = JSON.parse(fileData);
+      globalProducts = parsedProducts; // Cache in memory
+      console.log("[products/route.ts] Loaded products from file, count:", parsedProducts.length);
+      return parsedProducts;
     }
+  } catch (error) {
+    console.error("Error reading products from file:", error);
   }
   
   // Default fallback
   globalProducts = [...defaultProducts];
+  
+  // Save default products to file
+  try {
+    fs.writeFileSync(dataFilePath, JSON.stringify(defaultProducts, null, 2), 'utf8');
+    console.log("[products/route.ts] Saved default products to file");
+  } catch (error) {
+    console.error("Error saving default products to file:", error);
+  }
+  
   return [...defaultProducts]; // Return a copy of default products
 };
 
-// Function to save products to localStorage
+// Function to save products to file
 const saveProducts = (products: Product[]) => {
   // Update in-memory cache
   globalProducts = [...products];
   
-  // For client-side, save to localStorage
-  if (typeof window !== 'undefined') {
-    try {
-      localStorage.setItem('mockProducts', JSON.stringify(products));
-      console.log("[products/route.ts] Saved products to localStorage, count:", products.length);
-    } catch (error) {
-      console.error("Error saving products to localStorage:", error);
-    }
+  // Save to file
+  try {
+    fs.writeFileSync(dataFilePath, JSON.stringify(products, null, 2), 'utf8');
+    console.log("[products/route.ts] Saved products to file, count:", products.length);
+  } catch (error) {
+    console.error("Error saving products to file:", error);
   }
 };
 
-// Initialize products from localStorage or defaults
+// Initialize products from file or defaults
 let mockProducts: Product[] = getProducts();
 
 // GET /api/products - Fetch all products (with potential search)
@@ -153,9 +173,9 @@ export async function POST(request: Request) {
     console.log("[products/route.ts] Created new product:", newProduct);
     mockProducts.push(newProduct);
     
-    // Save to localStorage
+    // Save to file
     saveProducts(mockProducts);
-    console.log("[products/route.ts] Saved products to localStorage, total count:", mockProducts.length);
+    console.log("[products/route.ts] Saved products to file, total count:", mockProducts.length);
 
     return NextResponse.json(newProduct, { status: 201 });
   } catch (error) {
