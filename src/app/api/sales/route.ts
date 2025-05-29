@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { executeQuery } from '@/lib/db';
+import { executeQuery, executeTransaction } from '@/lib/db';
 import { getUserFromRequest } from '@/lib/auth';
 
 // الحصول على قائمة المبيعات
@@ -116,7 +116,7 @@ export async function GET(req: NextRequest) {
     sqlQuery += ` ORDER BY s.Date DESC`;
     
     // تنفيذ الاستعلام
-    const salesResult = await executeQuery(sqlQuery, queryParams);
+    const salesResult = await executeQuery<any[]>(sqlQuery, queryParams);
     
     // الحصول على عناصر المبيعات
     const salesWithItems = await Promise.all(salesResult.map(async (sale: any) => {
@@ -221,7 +221,7 @@ export async function POST(req: NextRequest) {
       tax = total * (data.taxRate / 100);
     }
     
-    // إنشاء المبيعة
+    // إنشاء المبيعة باستخدام المعاملات (Transactions)
     const insertSaleQuery = `
       INSERT INTO sales.Sales (
         InvoiceNumber, Date, Total, Discount, Tax, Notes, Status, PaymentMethod, CustomerId, UserId, CreatedAt, UpdatedAt
@@ -245,10 +245,19 @@ export async function POST(req: NextRequest) {
       userId: user.userId
     };
     
-    const saleResult = await executeQuery(insertSaleQuery, saleParams);
-    const saleId = saleResult[0].Id;
+    // إعداد قائمة الاستعلامات للمعاملة
+    const transactionQueries = [
+      { query: insertSaleQuery, params: saleParams }
+    ];
     
-    // إنشاء عناصر المبيعة
+    // تنفيذ المعاملة
+    const transactionResults = await executeTransaction(transactionQueries);
+    const saleId = transactionResults[0][0].Id;
+    
+    // إنشاء استعلامات لعناصر المبيعة وتحديث المخزون
+    const itemQueries = [];
+    
+    // إضافة استعلامات عناصر المبيعة
     for (const item of items) {
       const insertItemQuery = `
         INSERT INTO sales.SaleItems (
@@ -259,17 +268,20 @@ export async function POST(req: NextRequest) {
         )
       `;
       
-      await executeQuery(insertItemQuery, {
-        saleId,
-        productId: item.productId,
-        quantity: item.quantity,
-        price: item.price,
-        discount: item.discount,
-        total: item.total
+      itemQueries.push({
+        query: insertItemQuery,
+        params: {
+          saleId,
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.price,
+          discount: item.discount,
+          total: item.total
+        }
       });
     }
     
-    // تحديث كمية المنتجات في المخزون
+    // إضافة استعلامات تحديث المخزون
     for (const item of data.items) {
       const updateProductQuery = `
         UPDATE inventory.Products
@@ -277,10 +289,47 @@ export async function POST(req: NextRequest) {
         WHERE Id = @productId
       `;
       
-      await executeQuery(updateProductQuery, {
-        productId: item.productId,
-        quantity: item.quantity
+      itemQueries.push({
+        query: updateProductQuery,
+        params: {
+          productId: item.productId,
+          quantity: item.quantity
+        }
       });
+    }
+    
+    // تنفيذ استعلامات العناصر وتحديث المخزون في معاملة واحدة
+    await executeTransaction(itemQueries);
+    
+    // Define the types for the sale and item data
+    interface SaleData {
+      id: string;
+      invoiceNumber: string;
+      date: Date;
+      total: number;
+      discount: number;
+      tax: number;
+      notes: string;
+      status: string;
+      paymentMethod: string;
+      createdAt: Date;
+      updatedAt: Date;
+      customerId: string | null;
+      customerName: string | null;
+      customerPhone: string | null;
+      customerEmail: string | null;
+    }
+    
+    interface ItemData {
+      id: string;
+      quantity: number;
+      price: number;
+      discount: number;
+      total: number;
+      productId: string;
+      productName: string;
+      productSku: string;
+      productBarcode: string;
     }
     
     // الحصول على المبيعة المنشأة مع بياناتها الكاملة
@@ -306,8 +355,6 @@ export async function POST(req: NextRequest) {
       WHERE s.Id = @saleId
     `;
     
-    const saleData = await executeQuery(getSaleQuery, { saleId });
-    
     // الحصول على عناصر المبيعة
     const getItemsQuery = `
       SELECT 
@@ -325,7 +372,9 @@ export async function POST(req: NextRequest) {
       WHERE si.SaleId = @saleId
     `;
     
-    const itemsData = await executeQuery(getItemsQuery, { saleId });
+    // استخدام استعلامات منفصلة للحصول على البيانات بعد إتمام المعاملات
+    const saleData = await executeQuery<SaleData[]>(getSaleQuery, { saleId });
+    const itemsData = await executeQuery<ItemData[]>(getItemsQuery, { saleId });
     
     // تنسيق البيانات للإرجاع
     const sale = {
@@ -336,7 +385,7 @@ export async function POST(req: NextRequest) {
         phone: saleData[0].customerPhone,
         email: saleData[0].customerEmail
       } : null,
-      items: itemsData.map((item: any) => ({
+      items: itemsData.map((item) => ({
         ...item,
         product: {
           id: item.productId,

@@ -1,6 +1,6 @@
 // src/app/api/invoices/route.ts
 import { NextResponse } from 'next/server';
-import { executeQuery } from '@/lib/db';
+import { executeQuery, executeTransaction } from '@/lib/db';
 import type { Invoice, InvoiceItem } from '@/types';
 
 // GET /api/invoices - Fetch all invoices (with potential search)
@@ -145,8 +145,8 @@ export async function POST(request: Request) {
     console.log("[invoices/route.ts] بدء إنشاء الفاتورة مع العناصر:", items);
     
     try {
-      // استخدام المعاملة (Transaction) لضمان تنفيذ جميع العمليات بنجاح أو التراجع عنها جميعًا
-      await executeQuery(`BEGIN TRANSACTION;`);
+      // إعداد استعلامات المعاملة
+      const transactionQueries = [];
       
       // إدراج الفاتورة مباشرة في جدول الفواتير
       const insertInvoiceQuery = `
@@ -156,6 +156,7 @@ export async function POST(request: Request) {
           TaxAmount, TotalAmount, AmountPaid, AmountDue,
           Status, Notes, CompanyId, CreatedBy
         )
+        OUTPUT INSERTED.InvoiceId as invoiceId
         VALUES (
           @invoiceNumber, GETDATE(), @customerId, @paymentMethod,
           @subTotal, @discountPercent, @discountAmount, @taxPercent,
@@ -163,11 +164,9 @@ export async function POST(request: Request) {
           'Unpaid',
           @notes, @companyId, @createdBy
         );
-        
-        SELECT SCOPE_IDENTITY() AS invoiceId;
       `;
       
-      const invoiceResult = await executeQuery<any[]>(insertInvoiceQuery, {
+      const invoiceParams = {
         invoiceNumber,
         customerId: invoice.customerId,
         paymentMethod: invoice.paymentMethod || 'نقدي',
@@ -181,16 +180,24 @@ export async function POST(request: Request) {
         notes: invoice.notes || null,
         companyId,
         createdBy
-      });
+      };
       
-      console.log("[invoices/route.ts] تم إدراج الفاتورة:", invoiceResult);
+      // إضافة استعلام إنشاء الفاتورة إلى المعاملة
+      transactionQueries.push({ query: insertInvoiceQuery, params: invoiceParams });
+      
+      // تنفيذ المعاملة لإنشاء الفاتورة
+      const transactionResults = await executeTransaction(transactionQueries);
+      console.log("[invoices/route.ts] تم إدراج الفاتورة:", transactionResults[0]);
       
       // الحصول على معرف الفاتورة الجديدة
-      const newInvoiceId = invoiceResult && invoiceResult.length > 0 ? invoiceResult[0].invoiceId : null;
+      const newInvoiceId = transactionResults[0][0]?.invoiceId;
       
       if (!newInvoiceId) {
         throw new Error("لم يتم إرجاع معرف الفاتورة الجديدة من قاعدة البيانات");
       }
+      
+      // إعداد استعلامات لعناصر الفاتورة وتحديث المخزون
+      const itemsQueries = [];
       
       // إدراج عناصر الفاتورة
       for (const item of items) {
@@ -213,23 +220,22 @@ export async function POST(request: Request) {
           );
         `;
         
-        await executeQuery(insertItemQuery, {
-          invoiceId: newInvoiceId,
-          productId: item.productId,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          discountPercent,
-          discountAmount,
-          taxPercent,
-          taxAmount,
-          lineTotal
+        itemsQueries.push({
+          query: insertItemQuery,
+          params: {
+            invoiceId: newInvoiceId,
+            productId: item.productId,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            discountPercent,
+            discountAmount,
+            taxPercent,
+            taxAmount,
+            lineTotal
+          }
         });
-      }
-      
-      console.log("[invoices/route.ts] تم إدراج عناصر الفاتورة بنجاح");
-      
-      // تحديث كميات المنتجات
-      for (const item of items) {
+        
+        // تحديث كميات المنتجات
         const updateProductQuery = `
           UPDATE inventory.Products
           SET Quantity = Quantity - @quantity,
@@ -237,17 +243,21 @@ export async function POST(request: Request) {
           WHERE ProductId = @productId;
         `;
         
-        await executeQuery(updateProductQuery, {
-          productId: item.productId,
-          quantity: item.quantity
+        itemsQueries.push({
+          query: updateProductQuery,
+          params: {
+            productId: item.productId,
+            quantity: item.quantity
+          }
         });
       }
       
-      console.log("[invoices/route.ts] تم تحديث كميات المنتجات بنجاح");
+      // تنفيذ استعلامات العناصر وتحديث المخزون في معاملة واحدة
+      if (itemsQueries.length > 0) {
+        await executeTransaction(itemsQueries);
+      }
       
-      // تأكيد المعاملة
-      await executeQuery(`COMMIT TRANSACTION;`);
-      console.log("[invoices/route.ts] تم تأكيد المعاملة بنجاح");
+      console.log("[invoices/route.ts] تم إدراج عناصر الفاتورة وتحديث المخزون بنجاح");
       
       // جلب الفاتورة الجديدة من قاعدة البيانات
       const newInvoiceQuery = `
@@ -316,13 +326,7 @@ export async function POST(request: Request) {
     } catch (error) {
       console.error("[invoices/route.ts] خطأ في إنشاء الفاتورة:", error);
       
-      // التراجع عن المعاملة في حالة حدوث خطأ
-      try {
-        await executeQuery(`ROLLBACK TRANSACTION;`);
-        console.log("[invoices/route.ts] تم التراجع عن المعاملة بسبب خطأ");
-      } catch (rollbackError) {
-        console.error("[invoices/route.ts] خطأ في التراجع عن المعاملة:", rollbackError);
-      }
+      // لا حاجة للتراجع عن المعاملة يدويًا، فالدالة executeTransaction تتعامل مع ذلك تلقائيًا
       
       return NextResponse.json({ 
         message: "خطأ في إنشاء الفاتورة: " + ((error as Error).message || "خطأ غير معروف"),

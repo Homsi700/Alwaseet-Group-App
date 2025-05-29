@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { EmptyState, LoadingState, ErrorState } from '@/components/ui/loading-state';
-import { Search, SortAsc, SortDesc, Filter, Download, Loader2 } from 'lucide-react';
+import { Search, SortAsc, SortDesc, Filter, Download, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface Column<T> {
@@ -236,10 +236,17 @@ export function EnhancedTable<T extends Record<string, any>>({
         <Pagination className="mt-4">
           <PaginationContent>
             <PaginationItem>
-              <PaginationPrevious
-                onClick={() => pagination.onPageChange(pagination.pageIndex - 1)}
-                disabled={pagination.pageIndex === 0}
-              />
+              {pagination.pageIndex === 0 ? (
+                <span className="flex h-9 items-center gap-1 pl-2.5 rtl:pr-2.5 rtl:pl-3 text-muted-foreground">
+                  <ChevronLeft className="h-4 w-4 rtl:hidden" />
+                  <ChevronRight className="h-4 w-4 hidden rtl:block" />
+                  <span>السابق</span>
+                </span>
+              ) : (
+                <PaginationPrevious
+                  onClick={() => pagination.onPageChange(pagination.pageIndex - 1)}
+                />
+              )}
             </PaginationItem>
             
             {Array.from({ length: pagination.totalPages }).map((_, index) => {
@@ -277,10 +284,17 @@ export function EnhancedTable<T extends Record<string, any>>({
             })}
             
             <PaginationItem>
-              <PaginationNext
-                onClick={() => pagination.onPageChange(pagination.pageIndex + 1)}
-                disabled={pagination.pageIndex === pagination.totalPages - 1}
-              />
+              {pagination.pageIndex === pagination.totalPages - 1 ? (
+                <span className="flex h-9 items-center gap-1 pr-2.5 rtl:pl-2.5 rtl:pr-3 text-muted-foreground">
+                  <span>التالي</span>
+                  <ChevronRight className="h-4 w-4 rtl:hidden" />
+                  <ChevronLeft className="h-4 w-4 hidden rtl:block" />
+                </span>
+              ) : (
+                <PaginationNext
+                  onClick={() => pagination.onPageChange(pagination.pageIndex + 1)}
+                />
+              )}
             </PaginationItem>
           </PaginationContent>
         </Pagination>
