@@ -60,5 +60,21 @@
     "productId": 4,
     "companyId": 1,
     "isActive": true
+  },
+  {
+    "name": "جلواز احمر",
+    "barcode": "3258173939215",
+    "description": "جلواز احمر لايت",
+    "purchasePrice": 5800,
+    "salePrice": 6000,
+    "quantity": 500,
+    "unitOfMeasure": "علبة",
+    "minimumQuantity": 50,
+    "categoryId": 8,
+    "supplier": "شركة الشامي للمعسل ودخان",
+    "id": "prod_5",
+    "productId": 5,
+    "companyId": 1,
+    "isActive": true
   }
 ]

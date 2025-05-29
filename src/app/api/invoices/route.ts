@@ -135,41 +135,108 @@ export async function POST(request: Request) {
       const companyId = 1; // في المستقبل، يمكن الحصول على هذه القيمة من جلسة المستخدم
       const createdBy = 1; // في المستقبل، يمكن الحصول على هذه القيمة من جلسة المستخدم
       
-      // تحضير بيانات عناصر الفاتورة بتنسيق XML
-      let itemsXml = '<InvoiceItems>';
-      items.forEach(item => {
-        itemsXml += `
-          <Item>
-            <ProductId>${item.productId}</ProductId>
-            <Quantity>${item.quantity}</Quantity>
-            <UnitPrice>${item.unitPrice}</UnitPrice>
-            <DiscountPercent>${item.discountPercent || 0}</DiscountPercent>
-            <TaxPercent>${item.taxPercent || 0}</TaxPercent>
-          </Item>
-        `;
-      });
-      itemsXml += '</InvoiceItems>';
+      // تم استبدال تنسيق XML بجدول مؤقت
       
-      // استدعاء الإجراء المخزن sales.sp_CreateSalesInvoice
-      const result = await executeQuery<any[]>(`
+      // حساب إجماليات الفاتورة
+      let subTotal = 0;
+      let totalDiscountAmount = 0;
+      let totalTaxAmount = 0;
+      
+      items.forEach(item => {
+        const lineTotal = item.quantity * item.unitPrice;
+        const discountAmount = (lineTotal * (item.discountPercent || 0)) / 100;
+        const taxAmount = ((lineTotal - discountAmount) * (item.taxPercent || 0)) / 100;
+        
+        subTotal += lineTotal;
+        totalDiscountAmount += discountAmount;
+        totalTaxAmount += taxAmount;
+      });
+      
+      // حساب الإجمالي النهائي
+      const totalAmount = subTotal - totalDiscountAmount + totalTaxAmount;
+      
+      // إنشاء رقم فاتورة فريد
+      const invoiceNumber = `INV-${Date.now().toString().substring(6)}`;
+      
+      // إنشاء جدول مؤقت لعناصر الفاتورة
+      const invoiceItemsTable = await executeQuery<any[]>(`
+        -- إنشاء جدول مؤقت لعناصر الفاتورة
+        CREATE TABLE #TempInvoiceItems (
+          ProductId INT,
+          Quantity DECIMAL(18,2),
+          UnitPrice DECIMAL(18,2),
+          DiscountPercent DECIMAL(5,2),
+          DiscountAmount DECIMAL(18,2),
+          TaxPercent DECIMAL(5,2),
+          TaxAmount DECIMAL(18,2),
+          LineTotal DECIMAL(18,2)
+        );
+        
+        -- إدراج عناصر الفاتورة في الجدول المؤقت
+        ${items.map((item, index) => {
+          const lineTotal = item.quantity * item.unitPrice;
+          const discountPercent = item.discountPercent || 0;
+          const discountAmount = (lineTotal * discountPercent) / 100;
+          const taxPercent = item.taxPercent || 0;
+          const taxAmount = ((lineTotal - discountAmount) * taxPercent) / 100;
+          
+          return `
+          INSERT INTO #TempInvoiceItems (ProductId, Quantity, UnitPrice, DiscountPercent, DiscountAmount, TaxPercent, TaxAmount, LineTotal)
+          VALUES (
+            ${item.productId},
+            ${item.quantity},
+            ${item.unitPrice},
+            ${discountPercent},
+            ${discountAmount},
+            ${taxPercent},
+            ${taxAmount},
+            ${lineTotal}
+          );`;
+        }).join('\n')}
+        
+        -- إنشاء متغير من نوع InvoiceItemType
+        DECLARE @InvoiceItems sales.InvoiceItemType;
+        
+        -- نسخ البيانات من الجدول المؤقت إلى المتغير
+        INSERT INTO @InvoiceItems
+        SELECT * FROM #TempInvoiceItems;
+        
+        -- استدعاء الإجراء المخزن
         EXEC sales.sp_CreateSalesInvoice
+          @InvoiceNumber = @invoiceNumber,
           @CustomerId = @customerId,
-          @InvoiceDate = @invoiceDate,
           @PaymentMethod = @paymentMethod,
+          @SubTotal = @subTotal,
+          @DiscountPercent = @discountPercent,
+          @DiscountAmount = @discountAmount,
+          @TaxPercent = @taxPercent,
+          @TaxAmount = @taxAmount,
+          @TotalAmount = @totalAmount,
+          @AmountPaid = @amountPaid,
           @Notes = @notes,
           @CompanyId = @companyId,
           @CreatedBy = @createdBy,
-          @ItemsXml = @itemsXml;
-          
+          @InvoiceItems = @InvoiceItems;
+        
+        -- حذف الجدول المؤقت
+        DROP TABLE #TempInvoiceItems;
+        
+        -- إرجاع معرف الفاتورة الجديدة
         SELECT SCOPE_IDENTITY() AS invoiceId;
       `, {
+        invoiceNumber,
         customerId: invoice.customerId,
-        invoiceDate: invoice.invoiceDate || new Date().toISOString(),
         paymentMethod: invoice.paymentMethod || 'نقدي',
+        subTotal,
+        discountPercent: invoice.discountPercent || 0,
+        discountAmount: totalDiscountAmount,
+        taxPercent: 0, // يمكن تعديله لاحقًا
+        taxAmount: totalTaxAmount,
+        totalAmount,
+        amountPaid: 0, // يمكن تعديله لاحقًا
         notes: invoice.notes || null,
         companyId,
-        createdBy,
-        itemsXml
+        createdBy
       });
       
       console.log("[invoices/route.ts] Database insert result:", result);

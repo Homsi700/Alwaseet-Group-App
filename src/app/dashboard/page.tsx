@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { IconCard } from '@/components/ui/IconCard';
 import { dashboardGridItems, dashboardQuickAccessItems } from '@/components/layout/nav-items';
@@ -100,7 +100,7 @@ function DashboardContent() {
   };
   
   // التحديث التلقائي
-  React.useEffect(() => {
+  useEffect(() => {
     let interval: NodeJS.Timeout;
     
     if (autoRefresh) {
