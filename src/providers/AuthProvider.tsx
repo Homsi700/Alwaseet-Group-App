@@ -70,10 +70,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [pathname, logout]); // Add logout to dependency array
 
   const login = (newToken: string, userData: User) => {
-    localStorage.setItem('token', newToken);
-    localStorage.setItem('user', JSON.stringify(userData));
+    console.log('AuthProvider: Logging in user', userData);
+    
+    // تخزين البيانات في localStorage
+    try {
+      localStorage.setItem('token', newToken);
+      localStorage.setItem('user', JSON.stringify(userData));
+      console.log('AuthProvider: User data stored in localStorage');
+    } catch (error) {
+      console.error('AuthProvider: Error storing data in localStorage', error);
+    }
+    
+    // تحديث حالة المصادقة
     setUser(userData);
     setToken(newToken);
+    console.log('AuthProvider: Authentication state updated');
+    
+    // لا نقوم بالتوجيه هنا، نترك ذلك لصفحة تسجيل الدخول
+    // لتجنب التوجيه المزدوج
   };
 
 

@@ -13,6 +13,9 @@ const publicPaths = [
   '/api/products',
   '/api/products/[productId]', // For individual product operations
   '/api/invoices', // مؤقتًا للسماح بإنشاء الفواتير بدون مصادقة
+  
+  // Static assets
+  '/favicon.ico',
 ];
 
 // المسارات التي تتطلب مصادقة (لطلبات الصفحات)
@@ -60,8 +63,10 @@ export async function middleware(request: NextRequest) {
     : request.headers.get('Authorization')?.replace('Bearer ', '');
 
   if (!token) {
+    console.log(`[middleware] No token found for path: ${path}`);
     // إذا كان طلب صفحة، قم بالتوجيه إلى صفحة تسجيل الدخول
     if (isPageRequest && path !== '/login') { // Avoid redirect loop if already on login
+      console.log(`[middleware] Redirecting to login from path: ${path}`);
       return NextResponse.redirect(new URL('/login', request.url));
     }
     // إذا كان طلب API، أرجع خطأ 401
@@ -82,6 +87,7 @@ export async function middleware(request: NextRequest) {
     // For API requests, this can be directly accessed by backend logic
     requestHeaders.set('x-user-payload', JSON.stringify(decoded));
 
+    console.log(`[middleware] User authenticated for path: ${path}`);
 
     // المتابعة مع الطلب
     return NextResponse.next({
@@ -121,5 +127,6 @@ export const config = {
      * - public (public files)
      */
     '/((?!_next/static|_next/image|favicon.ico|public).*)',
+    '/api/:path*', // Match all API routes
   ],
 };

@@ -40,6 +40,8 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormValues) => {
     setIsSubmitting(true);
     try {
+      console.log('Submitting login form with data:', { username: data.username, password: '******' });
+      
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -47,14 +49,25 @@ export default function LoginPage() {
       });
 
       const result = await response.json();
+      console.log('Login response:', result); // إضافة سجل للتصحيح
+      
       if (response.ok && result.user) {
+        console.log('Login successful, calling authLogin with user:', result.user);
         authLogin(result.token, result.user);
+        
         toast({
           title: 'تم تسجيل الدخول بنجاح',
           description: `مرحباً بعودتك، ${result.user.firstName || result.user.username}!`,
         });
-        router.push('/dashboard'); // توجيه إلى لوحة التحكم
+        
+        // تأخير قصير قبل التوجيه للتأكد من تحديث الحالة
+        setTimeout(() => {
+          console.log('Redirecting to home dashboard...');
+          // استخدام window.location بدلاً من router للتأكد من إعادة تحميل الصفحة
+          window.location.href = '/';
+        }, 1000);
       } else {
+        console.log('Login failed:', result.message);
         toast({
           title: 'فشل تسجيل الدخول',
           description: result.message || 'اسم المستخدم أو كلمة المرور غير صحيحة.',
