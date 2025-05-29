@@ -9,7 +9,6 @@ Folder Tree for: Alwaseet-Group-App
     📄 TESTING.md
     📄 apphosting.yaml
     📄 components.json
-    📄 deep.py
     📄 folder_tree.txt
     📄 install_dependencies.bat
     📄 next
@@ -142,19 +141,22 @@ Folder Tree for: Alwaseet-Group-App
             📄 server-reference-manifest.json
             📄 webpack-runtime.js
             📁 app/
+                📁 (app)/
+                    📁 pos/
+                        📄 page.js
+                        📄 page_client-reference-manifest.js
                 📁 api/
-                    📁 auth/
-                        📁 login/
-                            📄 route.js
-                            📄 route_client-reference-manifest.js
+                    📁 invoices/
+                        📄 route.js
+                        📄 route_client-reference-manifest.js
+                    📁 products/
+                        📄 route.js
+                        📄 route_client-reference-manifest.js
                 📁 dashboard/
                     📄 page.js
                     📄 page_client-reference-manifest.js
                 📁 favicon.ico/
                     📄 route.js
-                📁 login/
-                    📄 page.js
-                    📄 page_client-reference-manifest.js
             📁 static/
                 📁 webpack/
                     📄 633457081244afec._.hot-update.json
@@ -162,7 +164,6 @@ Folder Tree for: Alwaseet-Group-App
                 📄 @azure.js
                 📄 @babel.js
                 📄 @floating-ui.js
-                📄 @hookform.js
                 📄 @js-joda.js
                 📄 @opentelemetry.js
                 📄 @radix-ui.js
@@ -206,7 +207,6 @@ Folder Tree for: Alwaseet-Group-App
                 📄 inherits.js
                 📄 internmap.js
                 📄 is-inside-container.js
-                📄 jose.js
                 📄 js-md4.js
                 📄 jsonwebtoken.js
                 📄 jspdf-autotable.js
@@ -229,7 +229,6 @@ Folder Tree for: Alwaseet-Group-App
                 📄 process.js
                 📄 prop-types.js
                 📄 raf.js
-                📄 react-hook-form.js
                 📄 react-is.js
                 📄 react-remove-scroll-bar.js
                 📄 react-remove-scroll.js
@@ -258,7 +257,6 @@ Folder Tree for: Alwaseet-Group-App
                 📄 use-sidecar.js
                 📄 victory-vendor.js
                 📄 xlsx.js
-                📄 zod.js
         📁 static/
             📁 chunks/
                 📄 _app-pages-browser_node_modules_canvg_lib_index_es_js.js
@@ -271,13 +269,16 @@ Folder Tree for: Alwaseet-Group-App
                 📄 webpack.js
                 📁 app/
                     📄 layout.js
+                    📁 (app)/
+                        📄 layout.js
+                        📁 pos/
+                            📄 page.js
                     📁 api/
-                        📁 auth/
-                            📁 login/
-                                📄 route.js
+                        📁 invoices/
+                            📄 route.js
+                        📁 products/
+                            📄 route.js
                     📁 dashboard/
-                        📄 page.js
-                    📁 login/
                         📄 page.js
             📁 css/
                 📁 app/
@@ -286,27 +287,32 @@ Folder Tree for: Alwaseet-Group-App
                 📄 _buildManifest.js
                 📄 _ssgManifest.js
             📁 webpack/
+                📄 07232169b349e9ae.webpack.hot-update.json
                 📄 633457081244afec._.hot-update.json
-                📄 cbe4ef307fb7bcad.webpack.hot-update.json
-                📄 dd28e7d60df39f36.webpack.hot-update.json
-                📄 fff5561d9cb5bebc.webpack.hot-update.json
-                📄 webpack.cbe4ef307fb7bcad.hot-update.js
-                📄 webpack.dd28e7d60df39f36.hot-update.js
-                📄 webpack.fff5561d9cb5bebc.hot-update.js
+                📄 cb43095a71b40047.webpack.hot-update.json
+                📄 da531950431bc934.webpack.hot-update.json
+                📄 e6899097a61e4d75.webpack.hot-update.json
+                📄 webpack.07232169b349e9ae.hot-update.js
+                📄 webpack.cb43095a71b40047.hot-update.js
+                📄 webpack.da531950431bc934.hot-update.js
+                📄 webpack.e6899097a61e4d75.hot-update.js
                 📁 app/
-                    📄 layout.fff5561d9cb5bebc.hot-update.js
+                    📄 layout.da531950431bc934.hot-update.js
         📁 types/
             📄 cache-life.d.ts
             📄 package.json
             📁 app/
                 📄 layout.ts
+                📁 (app)/
+                    📄 layout.ts
+                    📁 pos/
+                        📄 page.ts
                 📁 api/
-                    📁 auth/
-                        📁 login/
-                            📄 route.ts
+                    📁 invoices/
+                        📄 route.ts
+                    📁 products/
+                        📄 route.ts
                 📁 dashboard/
-                    📄 page.ts
-                📁 login/
                     📄 page.ts
     📁 backup/
         📄 alwasit_backup_2025-05-28.zip
