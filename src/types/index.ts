@@ -41,13 +41,36 @@ export interface Category {
     companyId?: number;
 }
 
+// نوع البيانات للعميل
+export interface Customer {
+    customerId: number;
+    name: string;
+    contactPerson?: string;
+    phoneNumber?: string;
+    email?: string;
+    address?: string;
+    taxNumber?: string;
+    creditLimit?: number;
+    balance?: number;
+    companyId: number;
+    createdAt?: Date;
+    updatedAt?: Date;
+    createdBy?: number;
+    isActive?: boolean;
+}
+
 
 // نوع البيانات للفاتورة
 export interface Invoice {
     invoiceId: number;
     invoiceNumber: string;
-    invoiceDate: Date;
+    invoiceDate: Date | string;
     customerId: number;
+    customerName?: string;
+    customerPhone?: string;
+    customerEmail?: string;
+    customerAddress?: string;
+    customerTaxNumber?: string;
     paymentMethod: string;
     subTotal: number;
     discountPercent: number;
@@ -58,15 +81,30 @@ export interface Invoice {
     amountPaid: number;
     amountDue: number;
     status: string;
-    notes: string;
+    notes?: string;
     companyId: number;
+    companyName?: string;
+    companyAddress?: string;
+    companyPhone?: string;
+    companyEmail?: string;
+    companyTaxNumber?: string;
+    createdAt?: Date | string;
+    updatedAt?: Date | string;
     createdBy: number;
+    createdByUsername?: string;
+    createdByFirstName?: string;
+    createdByLastName?: string;
 }
 
 // نوع البيانات لبنود الفاتورة
 export interface InvoiceItem {
+    invoiceItemId?: number;
+    invoiceId?: number;
     productId: number;
+    productName?: string;
+    productBarcode?: string;
     quantity: number;
+    unitOfMeasure?: string;
     unitPrice: number;
     discountPercent: number;
     discountAmount: number;

@@ -90,7 +90,7 @@ export async function GET(request: Request) {
     console.log("[products/route.ts] Search term:", searchTerm);
     console.log("[products/route.ts] Category ID:", categoryId);
     
-    // بناء استعلام SQL
+    // بناء استعلام SQL مع مراعاة هيكل قاعدة البيانات الفعلي
     let query = `
       SELECT 
         p.ProductId as productId,
@@ -130,6 +130,9 @@ export async function GET(request: Request) {
       query += ` AND p.CategoryId = @categoryId`;
       params.categoryId = parseInt(categoryId);
     }
+    
+    // إضافة ترتيب النتائج
+    query += ` ORDER BY p.Name`;
     
     console.log("[products/route.ts] Executing SQL query:", query);
     console.log("[products/route.ts] With parameters:", params);
@@ -188,7 +191,7 @@ export async function POST(request: Request) {
 
     // استخدام الإجراء المخزن لإضافة منتج جديد
     try {
-      // يمكن استخدام الإجراء المخزن المعرف في init.sql
+      // استخدام الإجراء المخزن inventory.sp_AddProduct الموجود في قاعدة البيانات
       const result = await executeQuery<any[]>(`
         EXEC inventory.sp_AddProduct
           @Name = @name,
