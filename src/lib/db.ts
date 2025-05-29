@@ -2,8 +2,7 @@ import sql from 'mssql';
 
 // تحديد إعدادات الاتصال بقاعدة بيانات SQL Server
 const config: sql.config = {
-  server: 'DESKTOP-0QOGPV9',       // <--- فقط اسم الخادم بدون منفذ هنا
-  port: 50000,                  // <--- المنفذ كخاصية منفصلة
+  server: 'DESKTOP-0QOGPV9\\SQLEXPRESS',  // اسم الخادم مع اسم المثيل
   database: 'AlwaseetGroup',    // اسم قاعدة البيانات
   driver: 'msnodesqlv8',         // برنامج تشغيل Node.js
   user: 'sa',                    // اسم المستخدم
@@ -17,7 +16,6 @@ const config: sql.config = {
 // طباعة إعدادات الاتصال (للتصحيح والمراجعة في الطرفية)
 console.log('[db.ts] Config:', {
   server: config.server,
-  port: config.port, // طباعة المنفذ أيضاً
   database: config.database,
   driver: config.driver,
   user: config.user,

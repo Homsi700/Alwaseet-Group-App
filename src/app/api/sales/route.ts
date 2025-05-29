@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { executeQuery } from '@/lib/db';
+import { getUserFromRequest } from '@/lib/auth';
 
 // الحصول على قائمة المبيعات
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const user = getUserFromRequest(req);
     
-    if (!session) {
+    if (!user) {
       return NextResponse.json({ error: 'غير مصرح لك بالوصول' }, { status: 401 });
     }
     
@@ -21,7 +20,7 @@ export async function GET(req: NextRequest) {
     
     // بناء شروط البحث
     const where: any = {
-      userId: session.user.id,
+      userId: user.userId,
     };
     
     // إضافة شرط البحث بالنص
@@ -59,35 +58,107 @@ export async function GET(req: NextRequest) {
       where.customerId = customerId;
     }
     
-    // الحصول على المبيعات مع تضمين بيانات العميل
-    const sales = await prisma.sale.findMany({
-      where,
-      include: {
-        customer: {
-          select: {
-            id: true,
-            name: true,
-            phone: true,
-            email: true,
-          },
-        },
-        items: {
-          include: {
-            product: {
-              select: {
-                id: true,
-                name: true,
-                sku: true,
-                barcode: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: {
-        date: 'desc',
-      },
-    });
+    // بناء استعلام SQL للحصول على المبيعات
+    let sqlQuery = `
+      SELECT 
+        s.Id as id,
+        s.InvoiceNumber as invoiceNumber,
+        s.Date as date,
+        s.Total as total,
+        s.Discount as discount,
+        s.Tax as tax,
+        s.Notes as notes,
+        s.Status as status,
+        s.PaymentMethod as paymentMethod,
+        s.CreatedAt as createdAt,
+        s.UpdatedAt as updatedAt,
+        c.Id as customerId,
+        c.Name as customerName,
+        c.Phone as customerPhone,
+        c.Email as customerEmail
+      FROM sales.Sales s
+      LEFT JOIN sales.Customers c ON s.CustomerId = c.Id
+      WHERE s.UserId = @userId
+    `;
+    
+    // إضافة شروط البحث إلى الاستعلام
+    const queryParams: any = { userId: user.userId };
+    
+    if (searchTerm) {
+      sqlQuery += ` AND (
+        s.InvoiceNumber LIKE @searchTerm
+        OR s.Notes LIKE @searchTerm
+        OR c.Name LIKE @searchTerm
+      )`;
+      queryParams.searchTerm = `%${searchTerm}%`;
+    }
+    
+    if (startDate) {
+      sqlQuery += ` AND s.Date >= @startDate`;
+      queryParams.startDate = new Date(startDate);
+    }
+    
+    if (endDate) {
+      sqlQuery += ` AND s.Date <= @endDate`;
+      queryParams.endDate = new Date(endDate);
+    }
+    
+    if (status) {
+      sqlQuery += ` AND s.Status = @status`;
+      queryParams.status = status;
+    }
+    
+    if (customerId) {
+      sqlQuery += ` AND s.CustomerId = @customerId`;
+      queryParams.customerId = customerId;
+    }
+    
+    sqlQuery += ` ORDER BY s.Date DESC`;
+    
+    // تنفيذ الاستعلام
+    const salesResult = await executeQuery(sqlQuery, queryParams);
+    
+    // الحصول على عناصر المبيعات
+    const salesWithItems = await Promise.all(salesResult.map(async (sale: any) => {
+      const itemsQuery = `
+        SELECT 
+          si.Id as id,
+          si.Quantity as quantity,
+          si.Price as price,
+          si.Discount as discount,
+          si.Total as total,
+          p.Id as productId,
+          p.Name as productName,
+          p.SKU as productSku,
+          p.Barcode as productBarcode
+        FROM sales.SaleItems si
+        JOIN inventory.Products p ON si.ProductId = p.Id
+        WHERE si.SaleId = @saleId
+      `;
+      
+      const items = await executeQuery(itemsQuery, { saleId: sale.id });
+      
+      return {
+        ...sale,
+        customer: sale.customerId ? {
+          id: sale.customerId,
+          name: sale.customerName,
+          phone: sale.customerPhone,
+          email: sale.customerEmail
+        } : null,
+        items: items.map((item: any) => ({
+          ...item,
+          product: {
+            id: item.productId,
+            name: item.productName,
+            sku: item.productSku,
+            barcode: item.productBarcode
+          }
+        }))
+      };
+    }));
+    
+    const sales = salesWithItems;
     
     return NextResponse.json(sales);
   } catch (error) {
@@ -99,9 +170,9 @@ export async function GET(req: NextRequest) {
 // إنشاء مبيعة جديدة
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const user = getUserFromRequest(req);
     
-    if (!session) {
+    if (!user) {
       return NextResponse.json({ error: 'غير مصرح لك بالوصول' }, { status: 401 });
     }
     
@@ -150,44 +221,131 @@ export async function POST(req: NextRequest) {
       tax = total * (data.taxRate / 100);
     }
     
-    // إنشاء المبيعة مع عناصرها
-    const sale = await prisma.sale.create({
-      data: {
-        invoiceNumber: data.invoiceNumber,
-        date: data.date ? new Date(data.date) : new Date(),
-        total: total + tax,
-        discount: discount,
-        tax: tax,
-        notes: data.notes,
-        status: data.status || 'COMPLETED',
-        paymentMethod: data.paymentMethod || 'CASH',
-        customerId: data.customerId,
-        userId: session.user.id,
-        items: {
-          create: items,
-        },
-      },
-      include: {
-        customer: true,
-        items: {
-          include: {
-            product: true,
-          },
-        },
-      },
-    });
+    // إنشاء المبيعة
+    const insertSaleQuery = `
+      INSERT INTO sales.Sales (
+        InvoiceNumber, Date, Total, Discount, Tax, Notes, Status, PaymentMethod, CustomerId, UserId, CreatedAt, UpdatedAt
+      )
+      OUTPUT INSERTED.Id
+      VALUES (
+        @invoiceNumber, @date, @total, @discount, @tax, @notes, @status, @paymentMethod, @customerId, @userId, GETDATE(), GETDATE()
+      )
+    `;
+    
+    const saleParams = {
+      invoiceNumber: data.invoiceNumber,
+      date: data.date ? new Date(data.date) : new Date(),
+      total: total + tax,
+      discount: discount,
+      tax: tax,
+      notes: data.notes,
+      status: data.status || 'COMPLETED',
+      paymentMethod: data.paymentMethod || 'CASH',
+      customerId: data.customerId,
+      userId: user.userId
+    };
+    
+    const saleResult = await executeQuery(insertSaleQuery, saleParams);
+    const saleId = saleResult[0].Id;
+    
+    // إنشاء عناصر المبيعة
+    for (const item of items) {
+      const insertItemQuery = `
+        INSERT INTO sales.SaleItems (
+          SaleId, ProductId, Quantity, Price, Discount, Total, CreatedAt, UpdatedAt
+        )
+        VALUES (
+          @saleId, @productId, @quantity, @price, @discount, @total, GETDATE(), GETDATE()
+        )
+      `;
+      
+      await executeQuery(insertItemQuery, {
+        saleId,
+        productId: item.productId,
+        quantity: item.quantity,
+        price: item.price,
+        discount: item.discount,
+        total: item.total
+      });
+    }
     
     // تحديث كمية المنتجات في المخزون
     for (const item of data.items) {
-      await prisma.product.update({
-        where: { id: item.productId },
-        data: {
-          quantity: {
-            decrement: item.quantity,
-          },
-        },
+      const updateProductQuery = `
+        UPDATE inventory.Products
+        SET Quantity = Quantity - @quantity, UpdatedAt = GETDATE()
+        WHERE Id = @productId
+      `;
+      
+      await executeQuery(updateProductQuery, {
+        productId: item.productId,
+        quantity: item.quantity
       });
     }
+    
+    // الحصول على المبيعة المنشأة مع بياناتها الكاملة
+    const getSaleQuery = `
+      SELECT 
+        s.Id as id,
+        s.InvoiceNumber as invoiceNumber,
+        s.Date as date,
+        s.Total as total,
+        s.Discount as discount,
+        s.Tax as tax,
+        s.Notes as notes,
+        s.Status as status,
+        s.PaymentMethod as paymentMethod,
+        s.CreatedAt as createdAt,
+        s.UpdatedAt as updatedAt,
+        c.Id as customerId,
+        c.Name as customerName,
+        c.Phone as customerPhone,
+        c.Email as customerEmail
+      FROM sales.Sales s
+      LEFT JOIN sales.Customers c ON s.CustomerId = c.Id
+      WHERE s.Id = @saleId
+    `;
+    
+    const saleData = await executeQuery(getSaleQuery, { saleId });
+    
+    // الحصول على عناصر المبيعة
+    const getItemsQuery = `
+      SELECT 
+        si.Id as id,
+        si.Quantity as quantity,
+        si.Price as price,
+        si.Discount as discount,
+        si.Total as total,
+        p.Id as productId,
+        p.Name as productName,
+        p.SKU as productSku,
+        p.Barcode as productBarcode
+      FROM sales.SaleItems si
+      JOIN inventory.Products p ON si.ProductId = p.Id
+      WHERE si.SaleId = @saleId
+    `;
+    
+    const itemsData = await executeQuery(getItemsQuery, { saleId });
+    
+    // تنسيق البيانات للإرجاع
+    const sale = {
+      ...saleData[0],
+      customer: saleData[0].customerId ? {
+        id: saleData[0].customerId,
+        name: saleData[0].customerName,
+        phone: saleData[0].customerPhone,
+        email: saleData[0].customerEmail
+      } : null,
+      items: itemsData.map((item: any) => ({
+        ...item,
+        product: {
+          id: item.productId,
+          name: item.productName,
+          sku: item.productSku,
+          barcode: item.productBarcode
+        }
+      }))
+    };
     
     return NextResponse.json(sale);
   } catch (error) {

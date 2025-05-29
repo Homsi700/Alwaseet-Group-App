@@ -329,8 +329,28 @@ export default function PointOfSalePage() {
                     });
                     
                     if (!response.ok) {
-                      const errorData = await response.json();
-                      throw new Error(errorData.message || 'فشل في إنشاء الفاتورة');
+                      let errorMessage = `فشل في إنشاء الفاتورة (${response.status})`;
+                      
+                      try {
+                        const errorText = await response.text();
+                        if (errorText) {
+                          try {
+                            const errorData = JSON.parse(errorText);
+                            if (errorData && errorData.message) {
+                              errorMessage = errorData.message;
+                            }
+                          } catch (parseError) {
+                            // إذا لم نتمكن من تحليل النص كـ JSON، نستخدم النص كما هو
+                            if (errorText.length < 100) {
+                              errorMessage = errorText;
+                            }
+                          }
+                        }
+                      } catch (textError) {
+                        // إذا فشلت قراءة النص، نستخدم رسالة الخطأ الافتراضية
+                      }
+                      
+                      throw new Error(errorMessage);
                     }
                     
                     const result = await response.json();

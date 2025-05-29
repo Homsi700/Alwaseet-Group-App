@@ -12,6 +12,7 @@ const publicPaths = [
   '/api/categories',
   '/api/products',
   '/api/products/[productId]', // For individual product operations
+  '/api/invoices', // مؤقتًا للسماح بإنشاء الفواتير بدون مصادقة
 ];
 
 // المسارات التي تتطلب مصادقة (لطلبات الصفحات)

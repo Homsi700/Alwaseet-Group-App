@@ -254,7 +254,7 @@ function DashboardContent() {
       <div className="flex items-center justify-between space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">لوحة التحكم</h1>
         <div className="flex items-center gap-2">
-          <Tabs value={period} onValueChange={(value: 'today' | 'week' | 'month') => setPeriod(value)}>
+          <Tabs value={period} onValueChange={(value) => setPeriod(value as 'today' | 'week' | 'month')}>
             <TabsList>
               <TabsTrigger value="today">اليوم</TabsTrigger>
               <TabsTrigger value="week">الأسبوع</TabsTrigger>
@@ -285,7 +285,7 @@ function DashboardContent() {
           <ExportData
             title="تقرير لوحة المعلومات"
             data={[
-              ...salesChartData.map(item => ({
+              ...salesChartData.map((item: { date: string; sales: number; orders: number; profit: number }) => ({
                 التاريخ: item.date,
                 المبيعات: item.sales,
                 الطلبات: item.orders,
