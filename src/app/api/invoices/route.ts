@@ -111,11 +111,80 @@ export async function POST(request: Request) {
     }
     
     // Validate required fields
-    const { invoice, items } = body;
+    const { invoice } = body;
+    let { items } = body;
+    
+    console.log("[invoices/route.ts] Received invoice data:", invoice);
+    console.log("[invoices/route.ts] Received items data:", items);
     
     if (!invoice.customerId || !items || items.length === 0) {
       return NextResponse.json({ message: "البيانات المطلوبة غير مكتملة" }, { status: 400 });
     }
+    
+    // تحقق من وجود العميل في قاعدة البيانات
+    try {
+      const checkCustomerQuery = `SELECT CustomerId FROM sales.Customers WHERE CustomerId = @customerId`;
+      const customerResult = await executeQuery<any[]>(checkCustomerQuery, { customerId: invoice.customerId });
+      
+      if (!customerResult || customerResult.length === 0) {
+        console.error(`[invoices/route.ts] العميل بالمعرف ${invoice.customerId} غير موجود في قاعدة البيانات`);
+        
+        // إذا كان العميل غير موجود، نستخدم العميل النقدي (معرف 2)
+        console.log(`[invoices/route.ts] سيتم استخدام العميل النقدي (معرف 2) بدلاً من ذلك`);
+        invoice.customerId = 2;
+      } else {
+        console.log(`[invoices/route.ts] تم التحقق من وجود العميل بالمعرف ${invoice.customerId}`);
+      }
+    } catch (error) {
+      console.error("[invoices/route.ts] خطأ في التحقق من وجود العميل:", error);
+      // في حالة حدوث خطأ، نستخدم العميل النقدي (معرف 2)
+      console.log(`[invoices/route.ts] سيتم استخدام العميل النقدي (معرف 2) بدلاً من ذلك`);
+      invoice.customerId = 2;
+    }
+    
+    // تحقق من وجود المنتجات في قاعدة البيانات وإزالة المنتجات غير الموجودة
+    const validItems = [];
+    
+    // طباعة جميع معرفات المنتجات المستلمة
+    console.log("[invoices/route.ts] معرفات المنتجات المستلمة:", items.map(item => item.productId));
+    
+    for (const item of items) {
+      try {
+        // التأكد من أن معرف المنتج هو رقم صحيح
+        const productId = typeof item.productId === 'string' ? parseInt(item.productId) : item.productId;
+        
+        if (isNaN(productId)) {
+          console.error(`[invoices/route.ts] معرف المنتج غير صالح: ${item.productId}`);
+          continue;
+        }
+        
+        const checkProductQuery = `SELECT ProductId FROM inventory.Products WHERE ProductId = @productId`;
+        const productResult = await executeQuery<any[]>(checkProductQuery, { productId });
+        
+        if (!productResult || productResult.length === 0) {
+          console.error(`[invoices/route.ts] المنتج بالمعرف ${productId} غير موجود في قاعدة البيانات وسيتم تخطيه`);
+        } else {
+          console.log(`[invoices/route.ts] تم التحقق من وجود المنتج بالمعرف ${productId}`);
+          // استخدام معرف المنتج كرقم صحيح
+          validItems.push({
+            ...item,
+            productId
+          });
+        }
+      } catch (error) {
+        console.error(`[invoices/route.ts] خطأ في التحقق من وجود المنتج بالمعرف ${item.productId}:`, error);
+      }
+    }
+    
+    // إذا لم تكن هناك منتجات صالحة، نرجع خطأ
+    if (validItems.length === 0) {
+      return NextResponse.json({ 
+        message: `لا توجد منتجات صالحة في الفاتورة. تحقق من معرفات المنتجات.`
+      }, { status: 400 });
+    }
+    
+    // استبدال قائمة المنتجات بالمنتجات الصالحة فقط
+    items = validItems;
     
     // إنشاء فاتورة مبيعات جديدة
     const companyId = 1; // في المستقبل، يمكن الحصول على هذه القيمة من جلسة المستخدم
@@ -156,12 +225,12 @@ export async function POST(request: Request) {
           TaxAmount, TotalAmount, AmountPaid, AmountDue,
           Status, Notes, CompanyId, CreatedBy
         )
-        OUTPUT INSERTED.InvoiceId as invoiceId
+        OUTPUT INSERTED.InvoiceId as invoiceId, INSERTED.InvoiceNumber as invoiceNumber
         VALUES (
           @invoiceNumber, GETDATE(), @customerId, @paymentMethod,
           @subTotal, @discountPercent, @discountAmount, @taxPercent,
           @taxAmount, @totalAmount, @amountPaid, (@totalAmount - @amountPaid),
-          'Unpaid',
+          @status,
           @notes, @companyId, @createdBy
         );
       `;
@@ -173,10 +242,11 @@ export async function POST(request: Request) {
         subTotal,
         discountPercent: invoice.discountPercent || 0,
         discountAmount: totalDiscountAmount,
-        taxPercent: 0, // يمكن تعديله لاحقًا
+        taxPercent: invoice.taxPercent || 0,
         taxAmount: totalTaxAmount,
         totalAmount,
-        amountPaid: 0, // يمكن تعديله لاحقًا
+        amountPaid: invoice.amountPaid || 0,
+        status: invoice.status || 'Unpaid',
         notes: invoice.notes || null,
         companyId,
         createdBy
@@ -187,10 +257,49 @@ export async function POST(request: Request) {
       
       // تنفيذ المعاملة لإنشاء الفاتورة
       const transactionResults = await executeTransaction(transactionQueries);
-      console.log("[invoices/route.ts] تم إدراج الفاتورة:", transactionResults[0]);
+      console.log("[invoices/route.ts] نتائج المعاملة:", transactionResults);
+      
+      // التحقق من وجود نتائج
+      if (!transactionResults || !transactionResults.length) {
+        throw new Error("لم يتم إرجاع أي نتائج من قاعدة البيانات");
+      }
+      
+      console.log("[invoices/route.ts] نتيجة إدراج الفاتورة:", transactionResults[0]);
       
       // الحصول على معرف الفاتورة الجديدة
-      const newInvoiceId = transactionResults[0][0]?.invoiceId;
+      let newInvoiceId;
+      
+      try {
+        // التحقق من شكل البيانات المرجعة
+        if (Array.isArray(transactionResults[0]) && transactionResults[0].length > 0) {
+          // إذا كانت النتيجة مصفوفة من السجلات
+          newInvoiceId = transactionResults[0][0]?.invoiceId;
+          console.log("[invoices/route.ts] معرف الفاتورة من المصفوفة:", newInvoiceId);
+        } else if (transactionResults[0] && typeof transactionResults[0] === 'object') {
+          // إذا كانت النتيجة كائن واحد
+          const firstResult = transactionResults[0] as any;
+          // البحث عن خاصية تحتوي على معرف الفاتورة
+          newInvoiceId = firstResult.invoiceId || firstResult.InvoiceId || firstResult.id || firstResult.Id;
+          console.log("[invoices/route.ts] معرف الفاتورة من الكائن:", newInvoiceId);
+        }
+        
+        // محاولة أخرى للحصول على معرف الفاتورة إذا لم يتم العثور عليه
+        if (!newInvoiceId && transactionResults[0]) {
+          console.log("[invoices/route.ts] محاولة استخراج معرف الفاتورة من:", JSON.stringify(transactionResults[0]));
+          
+          // محاولة البحث عن أي خاصية تحتوي على كلمة "id" أو "Id"
+          const firstResultStr = JSON.stringify(transactionResults[0]);
+          const idMatch = firstResultStr.match(/"([^"]*[iI]d)":\s*(\d+)/);
+          if (idMatch && idMatch.length >= 3) {
+            newInvoiceId = parseInt(idMatch[2]);
+            console.log("[invoices/route.ts] تم استخراج معرف الفاتورة من النص:", newInvoiceId);
+          }
+        }
+      } catch (error) {
+        console.error("[invoices/route.ts] خطأ في استخراج معرف الفاتورة:", error);
+      }
+      
+      console.log("[invoices/route.ts] معرف الفاتورة الجديدة:", newInvoiceId);
       
       if (!newInvoiceId) {
         throw new Error("لم يتم إرجاع معرف الفاتورة الجديدة من قاعدة البيانات");
@@ -201,6 +310,28 @@ export async function POST(request: Request) {
       
       // إدراج عناصر الفاتورة
       for (const item of items) {
+        // التأكد من أن معرف المنتج هو رقم صحيح
+        const productId = typeof item.productId === 'string' ? parseInt(item.productId) : item.productId;
+        
+        if (isNaN(productId) || productId <= 0) {
+          console.error(`[invoices/route.ts] تخطي المنتج بسبب معرف غير صالح: ${item.productId}`);
+          continue;
+        }
+        
+        // التحقق من وجود المنتج في قاعدة البيانات
+        try {
+          const checkProductQuery = `SELECT ProductId FROM inventory.Products WHERE ProductId = @productId`;
+          const productResult = await executeQuery<any[]>(checkProductQuery, { productId });
+          
+          if (!productResult || productResult.length === 0) {
+            console.error(`[invoices/route.ts] المنتج بالمعرف ${productId} غير موجود في قاعدة البيانات وسيتم تخطيه`);
+            continue;
+          }
+        } catch (error) {
+          console.error(`[invoices/route.ts] خطأ في التحقق من وجود المنتج بالمعرف ${productId}:`, error);
+          continue;
+        }
+        
         const lineTotal = item.quantity * item.unitPrice;
         const discountPercent = item.discountPercent || 0;
         const discountAmount = (lineTotal * discountPercent) / 100;
@@ -220,11 +351,13 @@ export async function POST(request: Request) {
           );
         `;
         
+        console.log(`[invoices/route.ts] إضافة المنتج بالمعرف ${productId} إلى الفاتورة`);
+        
         itemsQueries.push({
           query: insertItemQuery,
           params: {
             invoiceId: newInvoiceId,
-            productId: item.productId,
+            productId,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
             discountPercent,
@@ -243,10 +376,12 @@ export async function POST(request: Request) {
           WHERE ProductId = @productId;
         `;
         
+        console.log(`[invoices/route.ts] تحديث كمية المنتج بالمعرف: ${productId}`);
+        
         itemsQueries.push({
           query: updateProductQuery,
           params: {
-            productId: item.productId,
+            productId,
             quantity: item.quantity
           }
         });

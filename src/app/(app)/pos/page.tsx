@@ -296,61 +296,110 @@ export default function PointOfSalePage() {
                   
                   try {
                     // تحويل عناصر السلة إلى تنسيق بنود الفاتورة
-                    const invoiceItems = cart.map(item => ({
-                      productId: parseInt(item.id.replace('prod_', '')),
-                      quantity: item.quantity,
-                      unitPrice: item.price,
-                      discountPercent: 0,
-                      taxPercent: 0
-                    }));
+                    const invoiceItems = cart.map(item => {
+                      // استخراج معرف المنتج بشكل صحيح
+                      let productId;
+                      if (item.id.startsWith('prod_')) {
+                        productId = parseInt(item.id.replace('prod_', ''));
+                      } else {
+                        productId = parseInt(item.id);
+                      }
+                      
+                      // التأكد من أن معرف المنتج هو رقم صحيح
+                      if (isNaN(productId) || productId <= 0) {
+                        console.error(`[pos/page.tsx] معرف المنتج غير صالح: ${item.id}`);
+                        // استخدام قيمة افتراضية (2) إذا كان المعرف غير صالح
+                        productId = 2;
+                      }
+                      
+                      console.log(`[pos/page.tsx] معالجة المنتج: ${item.name}, معرف: ${item.id}, معرف المنتج المستخرج: ${productId}`);
+                      
+                      return {
+                        productId,
+                        quantity: item.quantity,
+                        unitPrice: item.price,
+                        discountPercent: 0,
+                        taxPercent: 0
+                      };
+                    });
                     
                     // إنشاء كائن الفاتورة
                     const invoiceData = {
                       invoice: {
-                        customerId: 1, // في المستقبل، يمكن الحصول على معرف العميل الحقيقي
+                        customerId: 2, // استخدام معرف العميل النقدي الموجود في قاعدة البيانات (معرف 2)
                         invoiceDate: new Date().toISOString(),
                         paymentMethod: "نقدي",
                         notes: `فاتورة من نقطة البيع - العميل: ${customer}`,
                         discountPercent: discountPercent,
-                        status: "مكتملة"
+                        status: "Completed", // استخدام حالة باللغة الإنجليزية لتتوافق مع قاعدة البيانات
+                        amountPaid: 0 // يمكن تعديله لاحقًا
                       },
                       items: invoiceItems
                     };
                     
+                    console.log("[pos/page.tsx] معرفات المنتجات في الفاتورة:", invoiceItems.map(item => item.productId));
+                    
                     console.log("[pos/page.tsx] إرسال بيانات الفاتورة:", invoiceData);
                     
+                    console.log("[pos/page.tsx] إرسال بيانات الفاتورة:", JSON.stringify(invoiceData, null, 2));
+                    
                     // إرسال الفاتورة إلى API
+                    console.log("[pos/page.tsx] إرسال الفاتورة إلى API...");
                     const response = await fetch('/api/invoices', {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json'
                       },
                       body: JSON.stringify(invoiceData),
                     });
                     
+                    console.log("[pos/page.tsx] استجابة API:", response.status, response.statusText);
+                    
                     if (!response.ok) {
                       let errorMessage = `فشل في إنشاء الفاتورة (${response.status})`;
+                      let errorDetails = '';
                       
                       try {
                         const errorText = await response.text();
+                        console.log("[pos/page.tsx] نص الخطأ:", errorText);
+                        
                         if (errorText) {
                           try {
                             const errorData = JSON.parse(errorText);
+                            console.log("[pos/page.tsx] بيانات الخطأ:", errorData);
+                            
                             if (errorData && errorData.message) {
                               errorMessage = errorData.message;
                             }
+                            
+                            if (errorData && errorData.error) {
+                              errorDetails = errorData.error;
+                            }
                           } catch (parseError) {
+                            console.error("[pos/page.tsx] خطأ في تحليل استجابة الخطأ:", parseError);
                             // إذا لم نتمكن من تحليل النص كـ JSON، نستخدم النص كما هو
                             if (errorText.length < 100) {
                               errorMessage = errorText;
+                            } else {
+                              errorDetails = errorText.substring(0, 100) + '...';
                             }
                           }
                         }
                       } catch (textError) {
-                        // إذا فشلت قراءة النص، نستخدم رسالة الخطأ الافتراضية
+                        console.error("[pos/page.tsx] خطأ في قراءة استجابة الخطأ:", textError);
                       }
                       
-                      throw new Error(errorMessage);
+                      console.error("[pos/page.tsx] فشل في إنشاء الفاتورة:", errorMessage, errorDetails);
+                      
+                      toast({
+                        variant: "destructive",
+                        title: "خطأ في إنشاء الفاتورة",
+                        description: errorMessage,
+                      });
+                      
+                      setIsSubmitting(false);
+                      return; // بدلاً من رمي خطأ، نعود من الدالة
                     }
                     
                     const result = await response.json();

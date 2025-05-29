@@ -1,5 +1,4 @@
- تم الاتصال بقاعدة البيانات بنجاح!
-
+✅ تم الاتصال بقاعدة البيانات بنجاح!
 # معلومات الاتصال بقاعدة البيانات
 SERVER_NAME = r'DESKTOP-0QOGPV9\SQLEXPRESS'
 DATABASE_NAME = 'AlwaseetGroup'
@@ -264,6 +263,17 @@ PASSWORD = '700210'
 (1, 'manager', 'fe5075389f4f570d3efc94c22b63ed65381edbdebd44d3510cffb24e5f225208', 'manager@example.com')
 
 ==================================================
+
+==================================================
+
+==================================================
+
+==================================================
+
+==================================================
+
+
+==================================================
            جلب وتنفيذ الإجراءات المخزنة
 ==================================================
 
@@ -272,4 +282,276 @@ PASSWORD = '700210'
 - sales.sp_CreateSalesInvoice
 
 ✅ تم الالتزام بالتغييرات (إن وجدت).
+✅ تم إغلاق الاتصال بقاعدة البيانات.
+PS C:\test\Alwaseet-Group-App> & C:/Users/ALwasset/AppData/Local/Programs/Python/Python313/python.exe c:/test/Alwaseet-Group-App/python/test.py
+✅ تم الاتصال بقاعدة البيانات بنجاح!
+
+======================================================================
+           عرض شامل لمخطط قاعدة البيانات (من الألف إلى الياء)
+======================================================================
+
+--- 1. تفاصيل الجداول والأعمدة والمفاتيح الأساسية والأجنبية ---
+
+## تفاصيل الجداول والأعمدة والمفاتيح (PK/FK)
+TABLE_SCHEMA | TABLE_NAME | COLUMN_NAME | DATA_TYPE | MaxLength | NUMERIC_PRECISION | NUMERIC_SCALE | IS_NULLABLE | IsPrimaryKey | IsForeignKey | ReferencedTableName | ReferencedColumnName
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+accounting | ChartOfAccounts | AccountId | int |  | 10 | 0 | NO | YES | NO | NULL | NULL
+accounting | ChartOfAccounts | AccountCode | nvarchar | 50 | NULL | NULL | NO | NO | NO | NULL | NULL
+accounting | ChartOfAccounts | AccountName | nvarchar | 255 | NULL | NULL | NO | NO | NO | NULL | NULL
+accounting | ChartOfAccounts | AccountType | nvarchar | 50 | NULL | NULL | NO | NO | NO | NULL | NULL
+accounting | ChartOfAccounts | ParentAccountId | int |  | 10 | 0 | YES | NO | YES | ChartOfAccounts | AccountId
+accounting | ChartOfAccounts | Balance | decimal |  | 18 | 2 | YES | NO | NO | NULL | NULL
+accounting | ChartOfAccounts | CompanyId | int |  | 10 | 0 | YES | NO | YES | Companies | CompanyId
+accounting | ChartOfAccounts | CreatedAt | datetime2 |  | NULL | NULL | YES | NO | NO | NULL | NULL
+accounting | ChartOfAccounts | UpdatedAt | datetime2 |  | NULL | NULL | YES | NO | NO | NULL | NULL
+accounting | ChartOfAccounts | CreatedBy | int |  | 10 | 0 | YES | NO | YES | Users | UserId
+accounting | ChartOfAccounts | IsActive | bit |  | NULL | NULL | YES | NO | NO | NULL | NULL
+accounting | JournalEntries | EntryId | int |  | 10 | 0 | NO | YES | NO | NULL | NULL  
+accounting | JournalEntries | EntryNumber | nvarchar | 50 | NULL | NULL | NO | NO | NO | NULL | NULL
+accounting | JournalEntries | EntryDate | datetime2 |  | NULL | NULL | NO | NO | NO | NULL | NULL
+accounting | JournalEntries | Description | nvarchar | 500 | NULL | NULL | YES | NO | NO | NULL | NULL
+accounting | JournalEntries | ReferenceType | nvarchar | 50 | NULL | NULL | YES | NO | NO | NULL | NULL
+accounting | JournalEntries | ReferenceId | nvarchar | 50 | NULL | NULL | YES | NO | NO | NULL | NULL
+accounting | JournalEntries | CompanyId | int |  | 10 | 0 | YES | NO | YES | Companies | CompanyId
+accounting | JournalEntries | CreatedAt | datetime2 |  | NULL | NULL | YES | NO | NO | NULL | NULL
+accounting | JournalEntries | UpdatedAt | datetime2 |  | NULL | NULL | YES | NO | NO | NULL | NULL
+accounting | JournalEntries | CreatedBy | int |  | 10 | 0 | YES | NO | YES | Users | UserId
+accounting | JournalEntries | IsPosted | bit |  | NULL | NULL | YES | NO | NO | NULL | NULL
+accounting | JournalEntryDetails | EntryDetailId | int |  | 10 | 0 | NO | YES | NO | NULL | NULL
+accounting | JournalEntryDetails | EntryId | int |  | 10 | 0 | YES | NO | YES | JournalEntries | EntryId
+accounting | JournalEntryDetails | AccountId | int |  | 10 | 0 | YES | NO | YES | ChartOfAccounts | AccountId
+accounting | JournalEntryDetails | DebitAmount | decimal |  | 18 | 2 | YES | NO | NO | NULL | NULL
+accounting | JournalEntryDetails | CreditAmount | decimal |  | 18 | 2 | YES | NO | NO | NULL | NULL
+accounting | JournalEntryDetails | Notes | nvarchar | 500 | NULL | NULL | YES | NO | NO | NULL | NULL
+dbo | Users | Id | int |  | 10 | 0 | NO | YES | NO | NULL | NULL
+dbo | Users | Username | nvarchar | 50 | NULL | NULL | NO | NO | NO | NULL | NULL      
+dbo | Users | HashedPassword | nvarchar | 256 | NULL | NULL | NO | NO | NO | NULL | NULL
+dbo | Users | Email | nvarchar | 100 | NULL | NULL | YES | NO | NO | NULL | NULL       
+inventory | Categories | CategoryId | int |  | 10 | 0 | NO | YES | NO | NULL | NULL    
+inventory | Categories | Name | nvarchar | 255 | NULL | NULL | NO | NO | NO | NULL | NULL
+inventory | Categories | Description | nvarchar | 500 | NULL | NULL | YES | NO | NO | NULL | NULL
+inventory | Categories | ParentCategoryId | int |  | 10 | 0 | YES | NO | YES | Categories | CategoryId
+inventory | Categories | CompanyId | int |  | 10 | 0 | YES | NO | YES | Companies | CompanyId
+inventory | Categories | CreatedAt | datetime2 |  | NULL | NULL | YES | NO | NO | NULL | NULL
+inventory | Categories | UpdatedAt | datetime2 |  | NULL | NULL | YES | NO | NO | NULL | NULL
+inventory | Categories | CreatedBy | int |  | 10 | 0 | YES | NO | YES | Users | UserId 
+inventory | Categories | IsActive | bit |  | NULL | NULL | YES | NO | NO | NULL | NULL 
+inventory | Products | ProductId | int |  | 10 | 0 | NO | YES | NO | NULL | NULL       
+inventory | Products | Name | nvarchar | 255 | NULL | NULL | NO | NO | NO | NULL | NULL
+inventory | Products | Barcode | nvarchar | 100 | NULL | NULL | YES | NO | NO | NULL | NULL
+inventory | Products | Description | nvarchar | MAX | NULL | NULL | YES | NO | NO | NULL | NULL
+inventory | Products | CategoryId | int |  | 10 | 0 | YES | NO | YES | Categories | CategoryId
+inventory | Products | PurchasePrice | decimal |  | 18 | 2 | NO | NO | NO | NULL | NULL
+inventory | Products | SalePrice | decimal |  | 18 | 2 | NO | NO | NO | NULL | NULL    
+inventory | Products | Quantity | decimal |  | 18 | 2 | YES | NO | NO | NULL | NULL    
+inventory | Products | UnitOfMeasure | nvarchar | 50 | NULL | NULL | YES | NO | NO | NULL | NULL
+inventory | Products | MinimumQuantity | decimal |  | 18 | 2 | YES | NO | NO | NULL | NULL
+inventory | Products | ImageUrl | nvarchar | MAX | NULL | NULL | YES | NO | NO | NULL | NULL
+inventory | Products | CompanyId | int |  | 10 | 0 | YES | NO | YES | Companies | CompanyId
+inventory | Products | CreatedAt | datetime2 |  | NULL | NULL | YES | NO | NO | NULL | NULL
+inventory | Products | UpdatedAt | datetime2 |  | NULL | NULL | YES | NO | NO | NULL | NULL
+inventory | Products | CreatedBy | int |  | 10 | 0 | YES | NO | YES | Users | UserId   
+inventory | Products | IsActive | bit |  | NULL | NULL | YES | NO | NO | NULL | NULL   
+sales | Customers | CustomerId | int |  | 10 | 0 | NO | YES | NO | NULL | NULL
+sales | Customers | Name | nvarchar | 255 | NULL | NULL | NO | NO | NO | NULL | NULL   
+sales | Customers | ContactPerson | nvarchar | 255 | NULL | NULL | YES | NO | NO | NULL | NULL
+sales | Customers | PhoneNumber | nvarchar | 50 | NULL | NULL | YES | NO | NO | NULL | NULL
+sales | Customers | Email | nvarchar | 255 | NULL | NULL | YES | NO | NO | NULL | NULL 
+sales | Customers | Address | nvarchar | 500 | NULL | NULL | YES | NO | NO | NULL | NULL
+sales | Customers | TaxNumber | nvarchar | 50 | NULL | NULL | YES | NO | NO | NULL | NULL
+sales | Customers | CreditLimit | decimal |  | 18 | 2 | YES | NO | NO | NULL | NULL    
+sales | Customers | Balance | decimal |  | 18 | 2 | YES | NO | NO | NULL | NULL        
+sales | Customers | CompanyId | int |  | 10 | 0 | YES | NO | YES | Companies | CompanyId
+sales | Customers | CreatedAt | datetime2 |  | NULL | NULL | YES | NO | NO | NULL | NULL
+sales | Customers | UpdatedAt | datetime2 |  | NULL | NULL | YES | NO | NO | NULL | NULL
+sales | Customers | CreatedBy | int |  | 10 | 0 | YES | NO | YES | Users | UserId      
+sales | Customers | IsActive | bit |  | NULL | NULL | YES | NO | NO | NULL | NULL      
+sales | InvoiceItems | InvoiceItemId | int |  | 10 | 0 | NO | YES | NO | NULL | NULL   
+sales | InvoiceItems | InvoiceId | int |  | 10 | 0 | YES | NO | YES | Invoices | InvoiceId
+sales | InvoiceItems | ProductId | int |  | 10 | 0 | YES | NO | YES | Products | ProductId
+sales | InvoiceItems | Quantity | decimal |  | 18 | 2 | NO | NO | NO | NULL | NULL     
+sales | InvoiceItems | UnitPrice | decimal |  | 18 | 2 | NO | NO | NO | NULL | NULL    
+sales | InvoiceItems | DiscountPercent | decimal |  | 5 | 2 | YES | NO | NO | NULL | NULL
+sales | InvoiceItems | DiscountAmount | decimal |  | 18 | 2 | YES | NO | NO | NULL | NULL
+sales | InvoiceItems | TaxPercent | decimal |  | 5 | 2 | YES | NO | NO | NULL | NULL
+sales | InvoiceItems | TaxAmount | decimal |  | 18 | 2 | YES | NO | NO | NULL | NULL   
+sales | InvoiceItems | LineTotal | decimal |  | 18 | 2 | NO | NO | NO | NULL | NULL    
+sales | Invoices | InvoiceId | int |  | 10 | 0 | NO | YES | NO | NULL | NULL
+sales | Invoices | InvoiceNumber | nvarchar | 50 | NULL | NULL | NO | NO | NO | NULL | NULL
+sales | Invoices | InvoiceDate | datetime2 |  | NULL | NULL | NO | NO | NO | NULL | NULL
+sales | Invoices | CustomerId | int |  | 10 | 0 | YES | NO | YES | Customers | CustomerId
+sales | Invoices | PaymentMethod | nvarchar | 50 | NULL | NULL | NO | NO | NO | NULL | NULL
+sales | Invoices | SubTotal | decimal |  | 18 | 2 | NO | NO | NO | NULL | NULL
+sales | Invoices | DiscountPercent | decimal |  | 5 | 2 | YES | NO | NO | NULL | NULL  
+sales | Invoices | DiscountAmount | decimal |  | 18 | 2 | YES | NO | NO | NULL | NULL  
+sales | Invoices | TaxPercent | decimal |  | 5 | 2 | YES | NO | NO | NULL | NULL       
+sales | Invoices | TaxAmount | decimal |  | 18 | 2 | YES | NO | NO | NULL | NULL       
+sales | Invoices | TotalAmount | decimal |  | 18 | 2 | NO | NO | NO | NULL | NULL      
+sales | Invoices | AmountPaid | decimal |  | 18 | 2 | YES | NO | NO | NULL | NULL      
+sales | Invoices | AmountDue | decimal |  | 18 | 2 | YES | NO | NO | NULL | NULL       
+sales | Invoices | Status | nvarchar | 50 | NULL | NULL | NO | NO | NO | NULL | NULL   
+sales | Invoices | Notes | nvarchar | MAX | NULL | NULL | YES | NO | NO | NULL | NULL  
+sales | Invoices | CompanyId | int |  | 10 | 0 | YES | NO | YES | Companies | CompanyId
+sales | Invoices | CreatedAt | datetime2 |  | NULL | NULL | YES | NO | NO | NULL | NULL
+sales | Invoices | UpdatedAt | datetime2 |  | NULL | NULL | YES | NO | NO | NULL | NULL
+sales | Invoices | CreatedBy | int |  | 10 | 0 | YES | NO | YES | Users | UserId       
+settings | Companies | CompanyId | int |  | 10 | 0 | NO | YES | NO | NULL | NULL       
+settings | Companies | Name | nvarchar | 255 | NULL | NULL | NO | NO | NO | NULL | NULL
+settings | Companies | TaxNumber | nvarchar | 50 | NULL | NULL | YES | NO | NO | NULL | NULL
+settings | Companies | Address | nvarchar | 500 | NULL | NULL | YES | NO | NO | NULL | NULL
+settings | Companies | PhoneNumber | nvarchar | 50 | NULL | NULL | YES | NO | NO | NULL | NULL
+settings | Companies | Email | nvarchar | 255 | NULL | NULL | YES | NO | NO | NULL | NULL
+settings | Companies | CurrencyCode | nvarchar | 10 | NULL | NULL | YES | NO | NO | NULL | NULL
+settings | Companies | CurrencySymbol | nvarchar | 10 | NULL | NULL | YES | NO | NO | NULL | NULL
+settings | Companies | Logo | varbinary | MAX | NULL | NULL | YES | NO | NO | NULL | NULL
+settings | Companies | CreatedAt | datetime2 |  | NULL | NULL | YES | NO | NO | NULL | NULL
+settings | Companies | UpdatedAt | datetime2 |  | NULL | NULL | YES | NO | NO | NULL | NULL
+settings | Companies | IsActive | bit |  | NULL | NULL | YES | NO | NO | NULL | NULL   
+settings | Users | UserId | int |  | 10 | 0 | NO | YES | NO | NULL | NULL
+settings | Users | Username | nvarchar | 50 | NULL | NULL | NO | NO | NO | NULL | NULL 
+settings | Users | PasswordHash | nvarchar | 255 | NULL | NULL | YES | NO | NO | NULL | NULL
+settings | Users | FirstName | nvarchar | 50 | NULL | NULL | YES | NO | NO | NULL | NULL
+settings | Users | LastName | nvarchar | 50 | NULL | NULL | YES | NO | NO | NULL | NULL
+settings | Users | Email | nvarchar | 255 | NULL | NULL | YES | NO | NO | NULL | NULL  
+settings | Users | Role | nvarchar | 50 | NULL | NULL | NO | NO | NO | NULL | NULL     
+settings | Users | CompanyId | int |  | 10 | 0 | YES | NO | YES | Companies | CompanyId
+settings | Users | CreatedAt | datetime2 |  | NULL | NULL | YES | NO | NO | NULL | NULL
+settings | Users | UpdatedAt | datetime2 |  | NULL | NULL | YES | NO | NO | NULL | NULL
+settings | Users | LastLogin | datetime2 |  | NULL | NULL | YES | NO | NO | NULL | NULL
+settings | Users | IsActive | bit |  | NULL | NULL | YES | NO | NO | NULL | NULL       
+
+--- 2. الفهارس (Indexes) ---
+
+## الفهارس
+TableSchema | TableName | IndexName | IndexType | IndexColumns | IsUnique
+-------------------------------------------------------------------------
+accounting | ChartOfAccounts | IX_ChartOfAccounts_AccountCode | NONCLUSTERED | AccountCode | NO
+accounting | ChartOfAccounts | PK__ChartOfA__349DA5A6FE21FD3B | CLUSTERED | AccountId | YES
+accounting | ChartOfAccounts | UQ__ChartOfA__38D0C56ABF8DA3BC | NONCLUSTERED | AccountCode | YES
+accounting | JournalEntries | IX_JournalEntries_EntryDate | NONCLUSTERED | EntryDate | NO
+accounting | JournalEntries | PK__JournalE__F57BD2F7DCAAB2C7 | CLUSTERED | EntryId | YES
+accounting | JournalEntries | UQ__JournalE__488B566FC1A359C3 | NONCLUSTERED | EntryNumber | YES
+accounting | JournalEntryDetails | IX_JournalEntryDetails_Analytics | NONCLUSTERED COLUMNSTORE | EntryId, AccountId, DebitAmount, CreditAmount | NO
+accounting | JournalEntryDetails | PK__JournalE__BE3A9BCB72777242 | CLUSTERED | EntryDetailId | YES
+dbo | Users | PK__Users__3214EC071F2E2C60 | CLUSTERED | Id | YES
+dbo | Users | UQ__Users__536C85E4B2CBC497 | NONCLUSTERED | Username | YES
+dbo | Users | UQ__Users__A9D1053468E94ABC | NONCLUSTERED | Email | YES
+inventory | Categories | PK__Categori__19093A0B16FAD7E0 | CLUSTERED | CategoryId | YES 
+inventory | Products | IX_Products_Barcode | NONCLUSTERED | Barcode | NO
+inventory | Products | IX_Products_CategoryId | NONCLUSTERED | CategoryId | NO
+inventory | Products | PK__Products__B40CC6CD74D427CF | CLUSTERED | ProductId | YES    
+inventory | Products | UQ__Products__177800D3082BBA1F | NONCLUSTERED | Barcode | YES   
+sales | Customers | PK__Customer__A4AE64D8BC5C52EA | CLUSTERED | CustomerId | YES      
+sales | InvoiceItems | IX_InvoiceItems_Analytics | NONCLUSTERED COLUMNSTORE | InvoiceId, ProductId, Quantity, UnitPrice, LineTotal | NO
+sales | InvoiceItems | PK__InvoiceI__478FE09C96FC1212 | CLUSTERED | InvoiceItemId | YES
+sales | Invoices | IX_Invoices_CustomerId | NONCLUSTERED | CustomerId | NO
+sales | Invoices | IX_Invoices_InvoiceDate | NONCLUSTERED | InvoiceDate | NO
+sales | Invoices | PK__Invoices__D796AAB5FCFF5407 | CLUSTERED | InvoiceId | YES        
+sales | Invoices | UQ__Invoices__D776E981C6C464EF | NONCLUSTERED | InvoiceNumber | YES 
+settings | Companies | PK__Companie__2D971CAC1B145380 | CLUSTERED | CompanyId | YES    
+settings | Users | PK__Users__1788CC4CC97F34C9 | CLUSTERED | UserId | YES
+settings | Users | UQ__Users__536C85E40225114D | NONCLUSTERED | Username | YES
+
+--- 3. الإجراءات المخزنة (Stored Procedures) ---
+
+## الإجراءات المخزنة
+RoutineSchema | ProcedureName | ObjectType | ProcedureDefinition_Snippet
+------------------------------------------------------------------------
+inventory | sp_AddProduct | SQL_STORED_PROCEDURE | CREATE PROCEDURE inventory.sp_AddProduct
+    @Name NVARCHAR(255),
+    @Barcode NVARCHAR(100),
+    @Description NVARCHAR(MAX),
+    @CategoryId INT,
+    @PurchasePrice DECIMAL(18,2),
+    @SalePrice DECIMAL(18,2),
+    @Quantity DECIMAL(18,2),
+    @UnitOfMeasure NVARCHAR(50),
+    @MinimumQuantity DECIMAL(18,2),
+    @ImageUrl NVARCHAR(MAX),
+    @CompanyId INT,
+    @CreatedBy INT
+AS
+BEGIN
+    INSERT INTO inventory.Products (
+        Name, Barcode, Description, CategoryId, PurchasePrice
+sales | sp_CreateSalesInvoice | SQL_STORED_PROCEDURE | CREATE PROCEDURE sales.sp_CreateSalesInvoice
+    @InvoiceNumber NVARCHAR(50),
+    @CustomerId INT,
+    @PaymentMethod NVARCHAR(50),
+    @SubTotal DECIMAL(18,2),
+    @DiscountPercent DECIMAL(5,2),
+    @DiscountAmount DECIMAL(18,2),
+    @TaxPercent DECIMAL(5,2),
+    @TaxAmount DECIMAL(18,2),
+    @TotalAmount DECIMAL(18,2),
+    @AmountPaid DECIMAL(18,2),
+    @Notes NVARCHAR(MAX),
+    @CompanyId INT,
+    @CreatedBy INT,
+    @InvoiceItems sales.InvoiceItemType READONLY
+AS
+BEGIN
+    B
+
+--- 4. الدوال (Functions) ---
+
+## الدوال
+  لا توجد نتائج.
+
+--- 5. المشاهدات (Views) ---
+
+## المشاهدات
+  لا توجد نتائج.
+
+--- 6. القيود (Constraints) الأخرى ---
+
+## القيود
+TableSchema | TableName | ConstraintName | ConstraintType | ConstraintDefinition
+--------------------------------------------------------------------------------       
+accounting | ChartOfAccounts | DF__ChartOfAc__Balan__787EE5A0 | DEFAULT_CONSTRAINT | ((0))
+accounting | ChartOfAccounts | DF__ChartOfAc__Creat__7A672E12 | DEFAULT_CONSTRAINT | (getdate())
+accounting | ChartOfAccounts | DF__ChartOfAc__IsAct__7C4F7684 | DEFAULT_CONSTRAINT | ((1))
+accounting | ChartOfAccounts | UQ__ChartOfA__38D0C56ABF8DA3BC | UNIQUE_CONSTRAINT | NULL
+accounting | JournalEntries | DF__JournalEn__Creat__01142BA1 | DEFAULT_CONSTRAINT | (getdate())
+accounting | JournalEntries | DF__JournalEn__IsPos__02FC7413 | DEFAULT_CONSTRAINT | ((0))
+accounting | JournalEntries | UQ__JournalE__488B566FC1A359C3 | UNIQUE_CONSTRAINT | NULL
+dbo | Users | UQ__Users__536C85E4B2CBC497 | UNIQUE_CONSTRAINT | NULL
+dbo | Users | UQ__Users__A9D1053468E94ABC | UNIQUE_CONSTRAINT | NULL
+inventory | Categories | DF__Categorie__Creat__571DF1D5 | DEFAULT_CONSTRAINT | (getdate())
+inventory | Categories | DF__Categorie__IsAct__59063A47 | DEFAULT_CONSTRAINT | ((1))   
+inventory | Products | DF__Products__Create__5FB337D6 | DEFAULT_CONSTRAINT | (getdate())
+inventory | Products | DF__Products__IsActi__619B8048 | DEFAULT_CONSTRAINT | ((1))     
+inventory | Products | DF__Products__Quanti__5DCAEF64 | DEFAULT_CONSTRAINT | ((0))     
+inventory | Products | UQ__Products__177800D3082BBA1F | UNIQUE_CONSTRAINT | NULL       
+sales | Customers | DF__Customers__Balan__6477ECF3 | DEFAULT_CONSTRAINT | ((0))        
+sales | Customers | DF__Customers__Creat__66603565 | DEFAULT_CONSTRAINT | (getdate())  
+sales | Customers | DF__Customers__IsAct__68487DD7 | DEFAULT_CONSTRAINT | ((1))        
+sales | Invoices | DF__Invoices__Amount__6D0D32F4 | DEFAULT_CONSTRAINT | ((0))
+sales | Invoices | DF__Invoices__Create__6EF57B66 | DEFAULT_CONSTRAINT | (getdate())   
+sales | Invoices | UQ__Invoices__D776E981C6C464EF | UNIQUE_CONSTRAINT | NULL
+settings | Companies | DF__Companies__Creat__4BAC3F29 | DEFAULT_CONSTRAINT | (getdate())
+settings | Companies | DF__Companies__Curre__49C3F6B7 | DEFAULT_CONSTRAINT | ('SYP')   
+settings | Companies | DF__Companies__Curre__4AB81AF0 | DEFAULT_CONSTRAINT | ('ل.س')   
+settings | Companies | DF__Companies__IsAct__4CA06362 | DEFAULT_CONSTRAINT | ((1))     
+settings | Users | DF__Users__CreatedAt__5165187F | DEFAULT_CONSTRAINT | (getdate())   
+settings | Users | DF__Users__IsActive__52593CB8 | DEFAULT_CONSTRAINT | ((1))
+settings | Users | UQ__Users__536C85E40225114D | UNIQUE_CONSTRAINT | NULL
+
+--- 7. المشغلات (Triggers) ---
+
+## المشغلات
+  لا توجد نتائج.
+
+======================================================================
+           أمثلة على تنفيذ استعلامات البيانات
+======================================================================
+
+## أول 5 مستخدمين من settings.Users
+UserId | Username | Email | Role
+--------------------------------
+1 | admin | admin@alwaseetgroup.com | Administrator
+
+======================================================================
+           جلب وتنفيذ الإجراءات المخزنة (أمثلة)
+======================================================================
 ✅ تم إغلاق الاتصال بقاعدة البيانات.

@@ -7,10 +7,8 @@ USERNAME = 'sa'
 PASSWORD = '700210'
 
 # بناء سلسلة الاتصال (Connection String)
-# Trusted_Connection=yes تستخدم عادة للاتصال بـ Windows Authentication.
-# إذا كنت تستخدم SQL Server Authentication، فيجب تحديد UID و PWD.
 CONNECTION_STRING = (
-    f"DRIVER={{ODBC Driver 17 for SQL Server}};"  # تأكد من أن هذا يتطابق مع برنامج تشغيل ODBC المثبت لديك
+    f"DRIVER={{ODBC Driver 17 for SQL Server}};"
     f"SERVER={SERVER_NAME};"
     f"DATABASE={DATABASE_NAME};"
     f"UID={USERNAME};"
@@ -32,220 +30,300 @@ def connect_to_database():
         print(ex)
         return None, None
 
-def get_database_schema(cursor):
+def execute_and_print(cursor, title, query, params=None):
     """
-    يجلب معلومات حول الجداول والأعمدة والعلاقات في قاعدة البيانات.
-    """
-    if not cursor:
-        return
-
-    print("\n--- فهم هيكل قاعدة البيانات ---")
-
-    # 1. جلب أسماء الجداول
-    print("\n## أسماء الجداول:")
-    try:
-        cursor.execute("SELECT TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'")
-        tables = cursor.fetchall()
-        for schema, table_name in tables:
-            print(f"- {schema}.{table_name}")
-    except pyodbc.Error as ex:
-        print(f"❌ حدث خطأ أثناء جلب أسماء الجداول: {ex}")
-
-    # 2. جلب أسماء الأعمدة لكل جدول
-    print("\n## أسماء الأعمدة لكل جدول:")
-    for schema, table_name in tables:
-        print(f"\n### أعمدة الجدول: {table_name}")
-        try:
-            cursor.execute(f"SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '{schema}' AND TABLE_NAME = '{table_name}'")
-            columns = cursor.fetchall()
-            for col_name, data_type, max_length in columns:
-                if max_length is not None:
-                    print(f"  - {col_name} ({data_type}, طول أقصى: {max_length})")
-                else:
-                    print(f"  - {col_name} ({data_type})")
-        except pyodbc.Error as ex:
-            print(f"❌ حدث خطأ أثناء جلب أعمدة الجدول {table_name}: {ex}")
-
-    # 3. جلب العلاقات بين الجداول (المفاتيح الأجنبية)
-    print("\n## العلاقات بين الجداول (المفاتيح الأجنبية):")
-    try:
-        # استعلام لجلب معلومات المفاتيح الأجنبية
-        foreign_keys_query = """
-        SELECT
-            rc.CONSTRAINT_NAME AS ForeignKeyName,
-            kcu.TABLE_SCHEMA AS ForeignTableSchema,
-            kcu.TABLE_NAME AS ForeignTableName,
-            kcu.COLUMN_NAME AS ForeignColumnName,
-            rc.UNIQUE_CONSTRAINT_SCHEMA AS PrimaryTableSchema,
-            rc.UNIQUE_CONSTRAINT_NAME AS PrimaryKeyName,
-            ptu.TABLE_NAME AS PrimaryTableName,
-            ccu.COLUMN_NAME AS PrimaryColumnName
-        FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS AS rc
-        INNER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS kcu
-            ON kcu.CONSTRAINT_SCHEMA = rc.CONSTRAINT_SCHEMA
-            AND kcu.CONSTRAINT_NAME = rc.CONSTRAINT_NAME
-        INNER JOIN INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE AS ccu
-            ON ccu.CONSTRAINT_SCHEMA = rc.UNIQUE_CONSTRAINT_SCHEMA
-            AND ccu.CONSTRAINT_NAME = rc.UNIQUE_CONSTRAINT_NAME
-        INNER JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS ptu
-            ON ptu.CONSTRAINT_SCHEMA = rc.UNIQUE_CONSTRAINT_SCHEMA
-            AND ptu.CONSTRAINT_NAME = rc.UNIQUE_CONSTRAINT_NAME
-        WHERE ptu.CONSTRAINT_TYPE = 'PRIMARY KEY'
-        """
-        cursor.execute(foreign_keys_query)
-        foreign_keys = cursor.fetchall()
-        if foreign_keys:
-            for fk_name, ft_schema, ft_name, fc_name, pt_schema, pk_name, pt_name, pc_name in foreign_keys:
-                print(f"- المفتاح الأجنبي: {fk_name}")
-                print(f"  الجدول الأجنبي: {ft_schema}.{ft_name}, العمود: {fc_name}")
-                print(f"  الجدول الرئيسي: {pt_schema}.{pt_name}, العمود: {pc_name}")
-                print("-" * 30)
-        else:
-            print("  لا توجد علاقات مفاتيح أجنبية معروفة.")
-    except pyodbc.Error as ex:
-        print(f"❌ حدث خطأ أثناء جلب علاقات المفاتيح الأجنبية: {ex}")
-
-def execute_query(cursor, query_type, query, params=None):
-    """
-    ينفذ استعلامًا ويعالج الأخطاء.
+    ينفذ استعلامًا ويطبع نتائجه بشكل منظم.
     """
     if not cursor:
         return
 
-    print(f"\n--- تنفيذ استعلام {query_type} ---")
-    print(f"الاستعلام: {query}")
+    print(f"\n## {title}")
     try:
         if params:
             cursor.execute(query, params)
         else:
             cursor.execute(query)
 
-        if query_type == "SELECT":
-            rows = cursor.fetchall()
-            if rows:
-                print("النتائج:")
-                for row in rows:
-                    print(row)
-            else:
-                print("لا توجد نتائج.")
+        rows = cursor.fetchall()
+        if rows:
+            # طباعة رؤوس الأعمدة
+            column_names = [column[0] for column in cursor.description]
+            print(" | ".join(column_names))
+            print("-" * (sum(len(name) + 3 for name in column_names) - 3)) # خط فاصل
+
+            # طباعة الصفوف
+            for row in rows:
+                print(" | ".join(str(item) if item is not None else "NULL" for item in row))
         else:
-            print("✅ تم تنفيذ الاستعلام بنجاح!")
-            # يمكنك إضافة cursor.commit() هنا إذا كنت تريد تنفيذ كل عملية على حدة،
-            # ولكن من الأفضل عادةً تجميع العمليات ثم الالتزام بها مرة واحدة في نهاية العملية الأكبر.
+            print("  لا توجد نتائج.")
     except pyodbc.Error as ex:
         sqlstate = ex.args[0]
-        print(f"❌ حدث خطأ أثناء تنفيذ استعلام {query_type}: {sqlstate}")
+        print(f"❌ حدث خطأ أثناء جلب {title.lower()}: {sqlstate}")
         print(ex)
 
-def execute_stored_procedure(cursor, sp_name, params=None):
+def get_database_full_schema(cursor):
     """
-    ينفذ إجراءً مخزنًا.
+    يجلب معلومات شاملة حول مخطط قاعدة البيانات (من الألف إلى الياء).
     """
     if not cursor:
         return
 
-    print(f"\n--- تنفيذ الإجراء المخزن: {sp_name} ---")
-    try:
-        if params:
-            # استخدام {CALL sp_name(?, ?)} للتعامل مع المعلمات
-            placeholders = ', '.join(['?' for _ in params])
-            cursor.execute(f"{{CALL {sp_name}({placeholders})}}", params)
-        else:
-            cursor.execute(f"{{CALL {sp_name}}}")
+    print("\n" + "="*70)
+    print("           عرض شامل لمخطط قاعدة البيانات (من الألف إلى الياء)")
+    print("="*70)
 
-        # يمكن أن تعيد الإجراءات المخزنة نتائج، لذا يمكنك محاولة جلبها
-        rows = cursor.fetchall()
-        if rows:
-            print("نتائج الإجراء المخزن:")
-            for row in rows:
-                print(row)
-        else:
-            print("تم تنفيذ الإجراء المخزن بنجاح (لا توجد نتائج مباشرة معادة).")
-        print("✅ تم تنفيذ الإجراء المخزن بنجاح!")
-    except pyodbc.Error as ex:
-        sqlstate = ex.args[0]
-        print(f"❌ حدث خطأ أثناء تنفيذ الإجراء المخزن {sp_name}: {sqlstate}")
-        print(ex)
-
-def get_stored_procedures(cursor):
+    # 1. تفاصيل شاملة عن جميع الجداول والأعمدة والمفاتيح الأساسية والأجنبية
+    print("\n--- 1. تفاصيل الجداول والأعمدة والمفاتيح الأساسية والأجنبية ---")
+    detailed_table_column_fk_pk_query = """
+    SELECT
+        t.TABLE_SCHEMA,
+        t.TABLE_NAME,
+        c.COLUMN_NAME,
+        c.DATA_TYPE,
+        CASE
+            WHEN c.CHARACTER_MAXIMUM_LENGTH = -1 THEN 'MAX'
+            WHEN c.CHARACTER_MAXIMUM_LENGTH IS NULL THEN ''
+            ELSE CAST(c.CHARACTER_MAXIMUM_LENGTH AS NVARCHAR(10))
+        END AS MaxLength,
+        c.NUMERIC_PRECISION,
+        c.NUMERIC_SCALE,
+        c.IS_NULLABLE,
+        CASE
+            WHEN pk.COLUMN_NAME IS NOT NULL THEN 'YES'
+            ELSE 'NO'
+        END AS IsPrimaryKey,
+        CASE
+            WHEN fk.ForeignKeyColumnName IS NOT NULL THEN 'YES'
+            ELSE 'NO'
+        END AS IsForeignKey,
+        fk.ReferencedTableName,
+        fk.ReferencedColumnName
+    FROM
+        INFORMATION_SCHEMA.TABLES AS t
+    INNER JOIN
+        INFORMATION_SCHEMA.COLUMNS AS c ON t.TABLE_SCHEMA = c.TABLE_SCHEMA AND t.TABLE_NAME = c.TABLE_NAME
+    LEFT JOIN (
+        SELECT
+            kcu.TABLE_SCHEMA,
+            kcu.TABLE_NAME,
+            kcu.COLUMN_NAME
+        FROM
+            INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS tc
+        INNER JOIN
+            INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS kcu ON tc.CONSTRAINT_NAME = kcu.CONSTRAINT_NAME AND tc.TABLE_SCHEMA = kcu.TABLE_SCHEMA AND tc.TABLE_NAME = kcu.TABLE_NAME
+        WHERE
+            tc.CONSTRAINT_TYPE = 'PRIMARY KEY'
+    ) AS pk ON c.TABLE_SCHEMA = pk.TABLE_SCHEMA AND c.TABLE_NAME = pk.TABLE_NAME AND c.COLUMN_NAME = pk.COLUMN_NAME
+    LEFT JOIN (
+        SELECT
+            kcu.TABLE_SCHEMA AS ForeignTableSchema,
+            kcu.TABLE_NAME AS ForeignTableName,
+            kcu.COLUMN_NAME AS ForeignKeyColumnName,
+            rc.UNIQUE_CONSTRAINT_SCHEMA AS ReferencedTableSchema,
+            ptc.TABLE_NAME AS ReferencedTableName,
+            ccu.COLUMN_NAME AS ReferencedColumnName
+        FROM
+            INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS AS rc
+        INNER JOIN
+            INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS kcu ON kcu.CONSTRAINT_SCHEMA = rc.CONSTRAINT_SCHEMA AND kcu.CONSTRAINT_NAME = rc.CONSTRAINT_NAME
+        INNER JOIN
+            INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE AS ccu ON ccu.CONSTRAINT_SCHEMA = rc.UNIQUE_CONSTRAINT_SCHEMA AND ccu.CONSTRAINT_NAME = rc.UNIQUE_CONSTRAINT_NAME
+        INNER JOIN
+            INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS ptc ON ptc.CONSTRAINT_SCHEMA = rc.UNIQUE_CONSTRAINT_SCHEMA AND ptc.CONSTRAINT_NAME = rc.UNIQUE_CONSTRAINT_NAME
+        WHERE
+            ptc.CONSTRAINT_TYPE = 'PRIMARY KEY'
+    ) AS fk ON c.TABLE_SCHEMA = fk.ForeignTableSchema AND c.TABLE_NAME = fk.ForeignTableName AND c.COLUMN_NAME = fk.ForeignKeyColumnName
+    WHERE
+        t.TABLE_TYPE = 'BASE TABLE'
+    ORDER BY
+        t.TABLE_SCHEMA, t.TABLE_NAME, c.ORDINAL_POSITION;
     """
-    يجلب أسماء الإجراءات المخزنة الموجودة في قاعدة البيانات.
-    """
-    if not cursor:
-        return []
+    execute_and_print(cursor, "تفاصيل الجداول والأعمدة والمفاتيح (PK/FK)", detailed_table_column_fk_pk_query)
 
-    print("\n--- الإجراءات المخزنة (Stored Procedures) الموجودة ---")
-    try:
-        cursor.execute("SELECT ROUTINE_SCHEMA, ROUTINE_NAME FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_TYPE = 'PROCEDURE'")
-        procedures = cursor.fetchall()
-        if procedures:
-            for schema, proc_name in procedures:
-                print(f"- {schema}.{proc_name}")
-            return [f"{schema}.{proc_name}" for schema, proc_name in procedures]
-        else:
-            print("  لا توجد إجراءات مخزنة.")
-            return []
-    except pyodbc.Error as ex:
-        print(f"❌ حدث خطأ أثناء جلب الإجراءات المخزنة: {ex}")
-        return []
+    # 2. جلب جميع الفهارس (Indexes) لكل جدول
+    print("\n--- 2. الفهارس (Indexes) ---")
+    indexes_query = """
+    SELECT
+        SCHEMA_NAME(t.schema_id) AS TableSchema,
+        t.name AS TableName,
+        ind.name AS IndexName,
+        ind.type_desc AS IndexType,
+        STRING_AGG(col.name, ', ') WITHIN GROUP (ORDER BY ic.key_ordinal) AS IndexColumns,
+        CASE WHEN ind.is_unique = 1 THEN 'YES' ELSE 'NO' END AS IsUnique
+    FROM
+        sys.indexes AS ind
+    INNER JOIN
+        sys.tables AS t ON ind.object_id = t.object_id
+    INNER JOIN
+        sys.index_columns AS ic ON ind.object_id = ic.object_id AND ind.index_id = ic.index_id
+    INNER JOIN
+        sys.columns AS col ON ic.object_id = col.object_id AND ic.column_id = col.column_id
+    WHERE
+        t.is_ms_shipped = 0 -- Exclude system tables
+        AND ind.name IS NOT NULL -- Exclude heap (no index name)
+    GROUP BY
+        SCHEMA_NAME(t.schema_id), t.name, ind.name, ind.type_desc, ind.is_unique
+    ORDER BY
+        TableSchema, TableName, IndexName;
+    """
+    execute_and_print(cursor, "الفهارس", indexes_query)
+
+    # 3. جلب جميع الإجراءات المخزنة (Stored Procedures) وتفاصيلها
+    print("\n--- 3. الإجراءات المخزنة (Stored Procedures) ---")
+    stored_procedures_query = """
+    SELECT
+        SCHEMA_NAME(SCHEMA_ID) AS RoutineSchema,
+        o.name AS ProcedureName,
+        o.type_desc AS ObjectType,
+        LEFT(m.definition, 500) AS ProcedureDefinition_Snippet -- Limit definition to 500 chars for readability
+    FROM
+        sys.objects AS o
+    INNER JOIN
+        sys.sql_modules AS m ON o.object_id = m.object_id
+    WHERE
+        o.type = 'P' -- 'P' for Stored Procedures
+    ORDER BY
+        RoutineSchema, ProcedureName;
+    """
+    execute_and_print(cursor, "الإجراءات المخزنة", stored_procedures_query)
+
+    # 4. جلب جميع الدوال (Functions) وتفاصيلها
+    print("\n--- 4. الدوال (Functions) ---")
+    functions_query = """
+    SELECT
+        SCHEMA_NAME(SCHEMA_ID) AS RoutineSchema,
+        o.name AS FunctionName,
+        o.type_desc AS ObjectType,
+        LEFT(m.definition, 500) AS FunctionDefinition_Snippet -- Limit definition
+    FROM
+        sys.objects AS o
+    INNER JOIN
+        sys.sql_modules AS m ON o.object_id = m.object_id
+    WHERE
+        o.type IN ('FN', 'IF', 'TF') -- 'FN' for Scalar functions, 'IF' for Inlined table-function, 'TF' for Table functions
+    ORDER BY
+        RoutineSchema, FunctionName;
+    """
+    execute_and_print(cursor, "الدوال", functions_query)
+
+    # 5. جلب جميع المشاهدات (Views) وتفاصيلها
+    print("\n--- 5. المشاهدات (Views) ---")
+    views_query = """
+    SELECT
+        SCHEMA_NAME(SCHEMA_ID) AS ViewSchema,
+        o.name AS ViewName,
+        LEFT(m.definition, 500) AS ViewDefinition_Snippet -- Limit definition
+    FROM
+        sys.objects AS o
+    INNER JOIN
+        sys.sql_modules AS m ON o.object_id = m.object_id
+    WHERE
+        o.type = 'V' -- 'V' for Views
+    ORDER BY
+        ViewSchema, ViewName;
+    """
+    execute_and_print(cursor, "المشاهدات", views_query)
+
+    # 6. جلب جميع القيود (Constraints) الأخرى (Unique, Check, Default)
+    print("\n--- 6. القيود (Constraints) الأخرى ---")
+    constraints_query = """
+    SELECT
+        SCHEMA_NAME(t.schema_id) AS TableSchema,
+        t.name AS TableName,
+        c.name AS ConstraintName,
+        c.type_desc AS ConstraintType,
+        OBJECT_DEFINITION(c.object_id) AS ConstraintDefinition -- For CHECK/DEFAULT constraints
+    FROM
+        sys.tables AS t
+    INNER JOIN
+        sys.objects AS c ON t.object_id = c.parent_object_id
+    WHERE
+        c.type IN ('UQ', 'C', 'D') -- 'UQ' for Unique, 'C' for Check, 'D' for Default
+    ORDER BY
+        TableSchema, TableName, ConstraintType, ConstraintName;
+    """
+    execute_and_print(cursor, "القيود", constraints_query)
+
+    # 7. جلب جميع المشغلات (Triggers)
+    print("\n--- 7. المشغلات (Triggers) ---")
+    triggers_query = """
+    SELECT
+        SCHEMA_NAME(t.schema_id) AS TableSchema,
+        t.name AS TableName,
+        tr.name AS TriggerName,
+        LEFT(OBJECT_DEFINITION(tr.object_id), 500) AS TriggerDefinition_Snippet, -- Limit definition
+        CASE
+            WHEN tr.is_instead_of_trigger = 1 THEN 'INSTEAD OF'
+            ELSE 'AFTER'
+        END AS TriggerType,
+        tr.is_disabled AS IsDisabled
+    FROM
+        sys.triggers AS tr
+    INNER JOIN
+        sys.tables AS t ON tr.parent_id = t.object_id
+    WHERE
+        tr.parent_class_desc = 'OBJECT_OR_COLUMN' -- For DML triggers on tables
+    ORDER BY
+        TableSchema, TableName, TriggerName;
+    """
+    execute_and_print(cursor, "المشغلات", triggers_query)
+
 
 # --- الجزء الرئيسي للسكربت ---
 if __name__ == "__main__":
     cnxn, cursor = connect_to_database()
 
     if cnxn and cursor:
-        # 1. فهم هيكل قاعدة البيانات
-        get_database_schema(cursor)
+        # استدعاء الدالة الجديدة لعرض المخطط الكامل
+        get_database_full_schema(cursor)
 
-        # 2. أمثلة على تنفيذ الاستعلامات
-        # استبدل هذه الاستعلامات باستعلاماتك الفعلية
-        print("\n" + "="*50)
-        print("           أمثلة على تنفيذ الاستعلامات")
-        print("="*50)
+        print("\n" + "="*70)
+        print("           أمثلة على تنفيذ استعلامات البيانات")
+        print("="*70)
 
         # مثال على SELECT
-        # استعلام SELECT يتناسب مع بنية قاعدة البيانات الخاصة بك
-        # افترض أن لديك جدول اسمه 'Users' وعمود اسمه 'UserName'
-        select_query = "SELECT TOP 5 * FROM Users" # تأكد من وجود هذا الجدول
-        execute_query(cursor, "SELECT", select_query)
+        select_query = "SELECT TOP 5 UserId, Username, Email, Role FROM settings.Users"
+        execute_and_print(cursor, "أول 5 مستخدمين من settings.Users", select_query)
 
-        # مثال على INSERT (يحتاج إلى قيم حقيقية تتناسب مع جدولك)
-        # تأكد من استبدال 'YourTable' و 'Column1', 'Column2' بأسماء الأعمدة الصحيحة
-        # وأضف القيم المناسبة.
-        # insert_query = "INSERT INTO YourTable (Column1, Column2) VALUES (?, ?)"
-        # execute_query(cursor, "INSERT", insert_query, ('value1', 'value2'))
+        # أمثلة INSERT/UPDATE/DELETE (تذكير: كن حذرًا عند استخدامها!)
+        # لاستخدامها، قم بإزالة التعليق وتعديلها لتناسب بياناتك
+        # print("\n--- أمثلة على INSERT/UPDATE/DELETE (للتجربة فقط) ---")
+        # try:
+        #     # مثال INSERT (يجب تعديل القيم والأعمدة لتناسب جدولك)
+        #     # insert_user_query = "INSERT INTO settings.Users (Username, PasswordHash, FirstName, LastName, Email, Role, CompanyId, CreatedAt, IsActive) VALUES (?, ?, ?, ?, ?, ?, ?, GETDATE(), ?)"
+        #     # execute_query(cursor, "INSERT", insert_user_query, ('testuser', 'hashedpass', 'Test', 'User', 'test@example.com', 'Viewer', 1, 1))
 
-        # مثال على UPDATE (يحتاج إلى قيم حقيقية تتناسب مع جدولك)
-        # update_query = "UPDATE YourTable SET Column1 = ? WHERE Column2 = ?"
-        # execute_query(cursor, "UPDATE", update_query, ('newValue', 'someCondition'))
+        #     # مثال UPDATE (يجب تعديل القيم والشروط)
+        #     # update_product_price_query = "UPDATE inventory.Products SET SalePrice = ? WHERE ProductId = ?"
+        #     # execute_query(cursor, "UPDATE", update_product_price_query, (120.50, 1))
 
-        # مثال على DELETE (كن حذرًا جدًا عند استخدام DELETE)
-        # delete_query = "DELETE FROM YourTable WHERE Column1 = ?"
-        # execute_query(cursor, "DELETE", delete_query, ('valueToDelete',))
+        #     # مثال DELETE (كن حذرًا جداً!)
+        #     # delete_customer_query = "DELETE FROM sales.Customers WHERE CustomerId = ?"
+        #     # execute_query(cursor, "DELETE", delete_customer_query, (5,))
+
+        #     cnxn.commit() # تأكيد التغييرات بعد عمليات INSERT/UPDATE/DELETE
+        #     print("✅ تم الالتزام بالتغييرات (إن وجدت).")
+        # except pyodbc.Error as ex:
+        #     print(f"❌ حدث خطأ أثناء الالتزام بالتغييرات: {ex}")
+        #     cnxn.rollback() # التراجع عن التغييرات في حالة حدوث خطأ
+        #     print("⚠️ تم التراجع عن التغييرات بسبب خطأ.")
 
 
-        # 3. جلب وتنفيذ الإجراءات المخزنة
-        print("\n" + "="*50)
-        print("           جلب وتنفيذ الإجراءات المخزنة")
-        print("="*50)
-        
-        available_procedures = get_stored_procedures(cursor)
-        if available_procedures:
-            # يمكنك اختيار إجراء مخزن من القائمة وتجربته
-            # مثال: إذا كان لديك إجراء مخزن اسمه 'GetUserDetails' يأخذ معرّف المستخدم كمعامل
-            # execute_stored_procedure(cursor, 'GetUserDetails', (123,))
-            pass
+        # 3. جلب وتنفيذ الإجراءات المخزنة (كما كان سابقاً)
+        print("\n" + "="*70)
+        print("           جلب وتنفيذ الإجراءات المخزنة (أمثلة)")
+        print("="*70)
 
-        # تذكر دائمًا الالتزام بالتغييرات وإغلاق الاتصال
-        try:
-            cnxn.commit()
-            print("\n✅ تم الالتزام بالتغييرات (إن وجدت).")
-        except pyodbc.Error as ex:
-            print(f"❌ حدث خطأ أثناء الالتزام بالتغييرات: {ex}")
+        # يمكنك عرض أسماء الإجراءات المخزنة مجدداً هنا إذا أردت
+        # get_stored_procedures(cursor) # يمكن إعادة تفعيل هذه الدالة من السكربت القديم إذا أردت قائمة مختصرة
+
+        # مثال على تنفيذ إجراء مخزن (تحتاج إلى معرفة المعلمات المطلوبة)
+        # execute_stored_procedure(cursor, 'inventory.sp_AddProduct', ('New Product Name', '123456789', 'Desc', 1, 10.0, 15.0, 100.0, 'Pcs', 10, NULL, 1, 1))
+        # execute_stored_procedure(cursor, 'sales.sp_CreateSalesInvoice', (1, 'Cash', 100.0, 0, 0, 10.0, 10.0, 110.0, 110.0, 0.0, 'Completed', 'Notes here', 1, 1))
+
 
         cursor.close()
         cnxn.close()
         print("✅ تم إغلاق الاتصال بقاعدة البيانات.")
     else:
         print("⚠️ لم يتمكن السكربت من الاتصال بقاعدة البيانات. يرجى مراجعة معلومات الاتصال والخطأ أعلاه.")
-
