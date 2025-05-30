@@ -2,7 +2,8 @@ import sql from 'mssql';
 
 // تحديد إعدادات الاتصال بقاعدة بيانات SQL Server
 const config: sql.config = {
-  server: 'DESKTOP-0QOGPV9\\SQLEXPRESS',  // اسم الخادم مع اسم المثيل
+  server: 'DESKTOP-0QOGPV9',       // <--- فقط اسم الخادم بدون منفذ هنا
+  port: 50000,                  // <--- المنفذ كخاصية منفصلة
   database: 'AlwaseetGroup',    // اسم قاعدة البيانات
   driver: 'msnodesqlv8',         // برنامج تشغيل Node.js
   user: 'sa',                    // اسم المستخدم
@@ -16,6 +17,7 @@ const config: sql.config = {
 // طباعة إعدادات الاتصال (للتصحيح والمراجعة في الطرفية)
 console.log('[db.ts] Config:', {
   server: config.server,
+  port: config.port, // طباعة المنفذ أيضاً
   database: config.database,
   driver: config.driver,
   user: config.user,
@@ -24,18 +26,14 @@ console.log('[db.ts] Config:', {
 
 let pool: sql.ConnectionPool | null = null;
 
-async function getPool(): Promise<sql.ConnectionPool> {
-  if (!pool) {
-    console.log('[db.ts] Creating new connection pool...');
-    pool = await sql.connect(config);
-    console.log('[db.ts] Connection pool created successfully!');
-  }
-  return pool;
-}
-
 async function executeQuery<T>(query: string, params: Record<string, any> = {}): Promise<T> {
   try {
-    const pool = await getPool();
+    if (!pool) {
+      console.log('[db.ts] Creating new connection pool...');
+      pool = await sql.connect(config);
+      console.log('[db.ts] Connection pool created successfully!');
+    }
+
     const request = pool.request();
 
     Object.entries(params).forEach(([key, value]) => {
@@ -60,47 +58,4 @@ async function executeQuery<T>(query: string, params: Record<string, any> = {}):
   }
 }
 
-// Function to execute multiple queries in a transaction
-async function executeTransaction<T>(
-  queries: Array<{ query: string; params: Record<string, any> }>
-): Promise<T[]> {
-  const pool = await getPool();
-  const transaction = new sql.Transaction(pool);
-  const results: T[] = [];
-
-  try {
-    console.log('[db.ts] Beginning transaction...');
-    await transaction.begin();
-
-    for (let i = 0; i < queries.length; i++) {
-      const { query, params } = queries[i];
-      const request = new sql.Request(transaction);
-
-      Object.entries(params).forEach(([key, value]) => {
-        request.input(key, value);
-      });
-
-      console.log(`[db.ts] Executing transaction query ${i + 1}/${queries.length}: ${query.substring(0, 100)}...`);
-      const result = await request.query(query);
-      results.push(result.recordset as T);
-    }
-
-    console.log('[db.ts] Committing transaction...');
-    await transaction.commit();
-    console.log('[db.ts] Transaction committed successfully!');
-
-    return results;
-  } catch (error) {
-    console.error('[db.ts] Transaction error:', error);
-    try {
-      console.log('[db.ts] Rolling back transaction...');
-      await transaction.rollback();
-      console.log('[db.ts] Transaction rolled back successfully!');
-    } catch (rollbackError) {
-      console.error('[db.ts] Rollback error:', rollbackError);
-    }
-    throw error;
-  }
-}
-
-export { executeQuery, executeTransaction };
+export { executeQuery };

@@ -10,19 +10,21 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
 
 export function AppProviders({ children, ...props }: ThemeProviderProps & { children: ReactNode }) {
-  // Create a client
+  // Ensure QueryClient is only created once and persists across re-renders
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
-        retry: 1,
         refetchOnWindowFocus: false,
+        retry: 1,
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        cacheTime: 10 * 60 * 1000, // 10 minutes
       },
     },
   }));
 
   return (
-    <NextThemesProvider attribute="class" defaultTheme="system" enableSystem {...props}>
-      <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
+      <NextThemesProvider attribute="class" defaultTheme="system" enableSystem {...props}>
         <AuthProvider>
           <LanguageProvider>
             <TooltipProvider delayDuration={0}>
@@ -30,7 +32,7 @@ export function AppProviders({ children, ...props }: ThemeProviderProps & { chil
             </TooltipProvider>
           </LanguageProvider>
         </AuthProvider>
-      </QueryClientProvider>
-    </NextThemesProvider>
+      </NextThemesProvider>
+    </QueryClientProvider>
   );
 }

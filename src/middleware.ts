@@ -3,20 +3,7 @@ import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose'; // Replaced jsonwebtoken with jose
 
 // المسارات التي لا تحتاج إلى مصادقة
-const publicPaths = [
-  // Auth routes
-  '/api/auth/login', 
-  '/login',
-  
-  // API routes that should be public
-  '/api/categories',
-  '/api/products',
-  '/api/products/[productId]', // For individual product operations
-  '/api/invoices', // مؤقتًا للسماح بإنشاء الفواتير بدون مصادقة
-  
-  // Static assets
-  '/favicon.ico',
-];
+const publicPaths = ['/', '/api/auth/login', '/login', '/register'];
 
 // المسارات التي تتطلب مصادقة (لطلبات الصفحات)
 // middleware configuration matcher will handle API routes separately if needed.
@@ -41,19 +28,7 @@ export async function middleware(request: NextRequest) {
   const isPageRequest = !path.startsWith('/api');
 
   // التحقق إذا كان المسار عام
-  // Check if the path is in the public paths list or matches a pattern with [productId] or other parameters
-  const isPublicPath = publicPaths.some(publicPath => {
-    if (publicPath.includes('[')) {
-      // Convert [parameter] pattern to regex
-      const pattern = publicPath.replace(/\[\w+\]/g, '[^/]+');
-      const regex = new RegExp(`^${pattern}$`);
-      return regex.test(path);
-    }
-    return publicPath === path;
-  });
-  
-  if (isPublicPath) {
-    console.log(`[middleware] Public path: ${path}, allowing without auth`);
+  if (publicPaths.includes(path)) {
     return NextResponse.next();
   }
 
@@ -63,10 +38,8 @@ export async function middleware(request: NextRequest) {
     : request.headers.get('Authorization')?.replace('Bearer ', '');
 
   if (!token) {
-    console.log(`[middleware] No token found for path: ${path}`);
     // إذا كان طلب صفحة، قم بالتوجيه إلى صفحة تسجيل الدخول
     if (isPageRequest && path !== '/login') { // Avoid redirect loop if already on login
-      console.log(`[middleware] Redirecting to login from path: ${path}`);
       return NextResponse.redirect(new URL('/login', request.url));
     }
     // إذا كان طلب API، أرجع خطأ 401
@@ -87,7 +60,6 @@ export async function middleware(request: NextRequest) {
     // For API requests, this can be directly accessed by backend logic
     requestHeaders.set('x-user-payload', JSON.stringify(decoded));
 
-    console.log(`[middleware] User authenticated for path: ${path}`);
 
     // المتابعة مع الطلب
     return NextResponse.next({
@@ -127,6 +99,5 @@ export const config = {
      * - public (public files)
      */
     '/((?!_next/static|_next/image|favicon.ico|public).*)',
-    '/api/:path*', // Match all API routes
   ],
 };
