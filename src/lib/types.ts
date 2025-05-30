@@ -293,3 +293,130 @@ export interface Supplier {
   rating?: number;
   category?: string;
 }
+
+// نوع البيانات للعميل
+export interface Customer {
+  customerId: number;
+  customerCode: string;
+  name: string;
+  contactPerson?: string;
+  phoneNumber?: string;
+  email?: string;
+  address?: string;
+  taxNumber?: string;
+  notes?: string;
+  creditLimit?: number;
+  balance?: number;
+  companyId: number;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  createdBy?: number;
+  isActive: boolean;
+  category?: string;
+}
+
+// نوع البيانات للحركة المالية
+export interface Transaction {
+  transactionId: number;
+  transactionNumber: string;
+  transactionDate: Date | string;
+  transactionType: TransactionType;
+  amount: number;
+  description?: string;
+  referenceNumber?: string;
+  referenceType?: ReferenceType;
+  referenceId?: number;
+  paymentMethod: PaymentMethod;
+  accountId: number;
+  accountName?: string;
+  entityType: EntityType;
+  entityId: number;
+  entityName?: string;
+  notes?: string;
+  attachments?: string[];
+  status: TransactionStatus;
+  companyId: number;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  createdBy?: number;
+  isReconciled?: boolean;
+  reconciledDate?: Date | string;
+  reconciledBy?: number;
+}
+
+// أنواع الحركات المالية
+export enum TransactionType {
+  INCOME = "INCOME",
+  EXPENSE = "EXPENSE",
+  TRANSFER = "TRANSFER",
+  PAYMENT_RECEIVED = "PAYMENT_RECEIVED",
+  PAYMENT_MADE = "PAYMENT_MADE",
+  REFUND = "REFUND",
+  ADJUSTMENT = "ADJUSTMENT"
+}
+
+// أنواع المراجع
+export enum ReferenceType {
+  INVOICE = "INVOICE",
+  PURCHASE_ORDER = "PURCHASE_ORDER",
+  SALES_ORDER = "SALES_ORDER",
+  EXPENSE_CLAIM = "EXPENSE_CLAIM",
+  BILL = "BILL",
+  MANUAL = "MANUAL"
+}
+
+// طرق الدفع
+export enum PaymentMethod {
+  CASH = "CASH",
+  BANK_TRANSFER = "BANK_TRANSFER",
+  CREDIT_CARD = "CREDIT_CARD",
+  CHEQUE = "CHEQUE",
+  ONLINE_PAYMENT = "ONLINE_PAYMENT",
+  OTHER = "OTHER"
+}
+
+// أنواع الكيانات
+export enum EntityType {
+  CUSTOMER = "CUSTOMER",
+  SUPPLIER = "SUPPLIER",
+  EMPLOYEE = "EMPLOYEE",
+  COMPANY = "COMPANY",
+  OTHER = "OTHER"
+}
+
+// حالات الحركة المالية
+export enum TransactionStatus {
+  PENDING = "PENDING",
+  COMPLETED = "COMPLETED",
+  FAILED = "FAILED",
+  CANCELLED = "CANCELLED",
+  RECONCILED = "RECONCILED"
+}
+
+// نوع البيانات للحساب المالي
+export interface Account {
+  accountId: number;
+  accountNumber: string;
+  name: string;
+  type: AccountType;
+  balance: number;
+  currency: string;
+  isActive: boolean;
+  description?: string;
+  bankName?: string;
+  bankBranch?: string;
+  companyId: number;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  createdBy?: number;
+}
+
+// أنواع الحسابات المالية
+export enum AccountType {
+  CASH = "CASH",
+  BANK = "BANK",
+  CREDIT_CARD = "CREDIT_CARD",
+  PETTY_CASH = "PETTY_CASH",
+  SAVINGS = "SAVINGS",
+  OTHER = "OTHER"
+}

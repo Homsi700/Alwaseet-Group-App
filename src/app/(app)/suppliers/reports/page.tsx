@@ -88,7 +88,7 @@ export default function SuppliersReportsPage() {
   const [reportPeriod, setReportPeriod] = useState("yearly");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
 
   // إجمالي المشتريات
   const totalPurchases = mockSuppliersData.reduce((sum, supplier) => sum + supplier.totalAmount, 0);
@@ -239,7 +239,7 @@ export default function SuppliersReportsPage() {
                   <SelectValue placeholder="جميع الفئات" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">جميع الفئات</SelectItem>
+                  <SelectItem value="all">جميع الفئات</SelectItem>
                   <SelectItem value="إلكترونيات">إلكترونيات</SelectItem>
                   <SelectItem value="قرطاسية">قرطاسية</SelectItem>
                   <SelectItem value="أثاث">أثاث</SelectItem>
@@ -282,7 +282,7 @@ export default function SuppliersReportsPage() {
                 </TableHeader>
                 <TableBody>
                   {mockSuppliersData
-                    .filter(supplier => !selectedCategory || supplier.category === selectedCategory)
+                    .filter(supplier => selectedCategory === "all" || supplier.category === selectedCategory)
                     .map((supplier) => (
                     <TableRow key={supplier.id}>
                       <TableCell className="font-medium">{supplier.name}</TableCell>
@@ -330,7 +330,7 @@ export default function SuppliersReportsPage() {
                 </TableHeader>
                 <TableBody>
                   {mockCategoryData
-                    .filter(category => !selectedCategory || category.category === selectedCategory)
+                    .filter(category => selectedCategory === "all" || category.category === selectedCategory)
                     .map((category) => (
                     <TableRow key={category.category}>
                       <TableCell className="font-medium">{category.category}</TableCell>
