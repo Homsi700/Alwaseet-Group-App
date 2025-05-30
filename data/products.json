@@ -76,5 +76,17 @@
     "productId": 5,
     "companyId": 1,
     "isActive": true
+  },
+  {
+    "name": "جلواز احمر",
+    "barcode": "3258173939215",
+    "purchasePrice": 5800,
+    "salePrice": 6000,
+    "quantity": 500,
+    "minimumQuantity": 20,
+    "id": "prod_6",
+    "productId": 6,
+    "companyId": 1,
+    "isActive": true
   }
 ]
