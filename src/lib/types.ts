@@ -269,3 +269,27 @@ export interface CurrentUser {
   isActive: boolean;
   permissions?: string[];
 }
+
+// نوع البيانات للمورد
+export interface Supplier {
+  supplierId: number;
+  supplierCode: string;
+  name: string;
+  contactPerson?: string;
+  phoneNumber?: string;
+  email?: string;
+  address?: string;
+  taxNumber?: string;
+  website?: string;
+  notes?: string;
+  paymentTerms?: string;
+  creditLimit?: number;
+  balance?: number;
+  companyId: number;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  createdBy?: number;
+  isActive: boolean;
+  rating?: number;
+  category?: string;
+}
