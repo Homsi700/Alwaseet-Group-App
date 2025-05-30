@@ -47,7 +47,7 @@ export default function PurchasesPage() {
                   <TableHead>رقم الأمر</TableHead>
                   <TableHead>التاريخ</TableHead>
                   <TableHead>المورد</TableHead>
-                  <TableHead className="text-right rtl:text-left">الإجمالي (ر.س)</TableHead>
+                  <TableHead className="text-right rtl:text-left">الإجمالي (ل.س)</TableHead>
                   <TableHead>الحالة</TableHead>
                   <TableHead className="text-center">الإجراءات</TableHead>
                 </TableRow>

@@ -229,8 +229,8 @@ export default function PointOfSalePage() {
                               <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md" onClick={() => updateQuantity(item.id, 1)}><PlusCircle className="h-4 w-4" /></Button>
                             </div>
                           </TableCell>
-                          <TableCell className="text-right rtl:text-left">{item.price.toFixed(2)} ر.س</TableCell>
-                          <TableCell className="text-right rtl:text-left">{(item.price * item.quantity).toFixed(2)} ر.س</TableCell>
+                          <TableCell className="text-right rtl:text-left">{item.price.toFixed(2)} ل.س</TableCell>
+                          <TableCell className="text-right rtl:text-left">{(item.price * item.quantity).toFixed(2)} ل.س</TableCell>
                           <TableCell className="text-center">
                             <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/80 rounded-md" onClick={() => removeFromCart(item.id)}><Trash2 className="h-4 w-4" /></Button>
                           </TableCell>
@@ -274,10 +274,10 @@ export default function PointOfSalePage() {
               </div>
               <Separator />
               <div className="space-y-1 text-sm">
-                <div className="flex justify-between"><span>المجموع الفرعي:</span><span>{subtotal.toFixed(2)} ر.س</span></div>
-                <div className="flex justify-between"><span>الخصم ({discountPercent}%):</span><span className="text-destructive">-{discountAmount.toFixed(2)} ر.س</span></div>
+                <div className="flex justify-between"><span>المجموع الفرعي:</span><span>{subtotal.toFixed(2)} ل.س</span></div>
+                <div className="flex justify-between"><span>الخصم ({discountPercent}%):</span><span className="text-destructive">-{discountAmount.toFixed(2)} ل.س</span></div>
                 <Separator/>
-                <div className="flex justify-between font-bold text-lg text-primary"><span>الإجمالي:</span><span>{totalAmount.toFixed(2)} ر.س</span></div>
+                <div className="flex justify-between font-bold text-lg text-primary"><span>الإجمالي:</span><span>{totalAmount.toFixed(2)} ل.س</span></div>
               </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-2">

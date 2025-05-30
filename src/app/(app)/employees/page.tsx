@@ -168,7 +168,7 @@ export default function EmployeesPage() {
                       <TableHead>المنصب</TableHead>
                       <TableHead>القسم</TableHead>
                       <TableHead>تاريخ التعيين</TableHead>
-                      <TableHead className="text-right rtl:text-left">الراتب (ر.س)</TableHead>
+                      <TableHead className="text-right rtl:text-left">الراتب (ل.س)</TableHead>
                       <TableHead>الحالة</TableHead>
                       <TableHead className="text-center">الإجراءات</TableHead>
                     </TableRow>
@@ -236,7 +236,7 @@ export default function EmployeesPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>الشهر</TableHead>
-                      <TableHead className="text-right rtl:text-left">إجمالي الرواتب (ر.س)</TableHead>
+                      <TableHead className="text-right rtl:text-left">إجمالي الرواتب (ل.س)</TableHead>
                       <TableHead>حالة الدفع</TableHead>
                       <TableHead>تاريخ الدفع</TableHead>
                       <TableHead className="text-center">الإجراءات</TableHead>
@@ -321,7 +321,7 @@ export default function EmployeesPage() {
               </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="salary" className="text-left rtl:text-right">الراتب (ر.س) *</Label>
+              <Label htmlFor="salary" className="text-left rtl:text-right">الراتب (ل.س) *</Label>
               <Input 
                 id="salary" 
                 type="number" 

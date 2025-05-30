@@ -164,7 +164,7 @@ export default function TransactionsLogPage() {
                     <TableCell className="font-medium">{transaction.description}</TableCell>
                     <TableCell>{transaction.reference || "لا يوجد"}</TableCell>
                     <TableCell className={`text-right rtl:text-left font-semibold ${transaction.amount >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                      {transaction.amount >= 0 ? '+' : '-'}{Math.abs(transaction.amount).toFixed(2)} ر.س
+                      {transaction.amount >= 0 ? '+' : '-'}{Math.abs(transaction.amount).toFixed(2)} ل.س
                     </TableCell>
                   </TableRow>
                 ))}

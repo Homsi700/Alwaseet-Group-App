@@ -47,7 +47,7 @@ export function InventoryReport({
   
   // تنسيق المبالغ المالية
   const formatCurrency = (value: number) => {
-    return `${value.toLocaleString('ar-SA')} ريال`;
+    return `${value.toLocaleString('ar-SA')} ليرة`;
   };
   
   // تغيير الفئة

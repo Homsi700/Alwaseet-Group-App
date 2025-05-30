@@ -101,16 +101,16 @@ function ReportsContent() {
             activeTab === 'sales'
               ? [
                   { header: 'التاريخ', accessor: 'التاريخ' },
-                  { header: 'المبيعات', accessor: 'المبيعات', format: (value) => `${value.toLocaleString('ar-SA')} ريال` },
+                  { header: 'المبيعات', accessor: 'المبيعات', format: (value) => `${value.toLocaleString('ar-SA')} ليرة` },
                   { header: 'الطلبات', accessor: 'الطلبات' },
-                  { header: 'الربح', accessor: 'الربح', format: (value) => `${value.toLocaleString('ar-SA')} ريال` },
+                  { header: 'الربح', accessor: 'الربح', format: (value) => `${value.toLocaleString('ar-SA')} ليرة` },
                 ]
               : activeTab === 'inventory'
                 ? [
                     { header: 'الفئة', accessor: 'الفئة' },
                     { header: 'العدد', accessor: 'العدد' },
                     { header: 'الكمية', accessor: 'الكمية' },
-                    { header: 'القيمة', accessor: 'القيمة', format: (value) => `${value.toLocaleString('ar-SA')} ريال` },
+                    { header: 'القيمة', accessor: 'القيمة', format: (value) => `${value.toLocaleString('ar-SA')} ليرة` },
                   ]
                 : [
                     { header: 'الشهر', accessor: 'الشهر' },

@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
       case 'currencies':
         // قائمة العملات
         data = [
-          { code: 'SAR', symbol: 'ر.س', name: 'ريال سعودي' },
+          { code: 'SYP', symbol: 'ل.س', name: 'ليرة سورية' },
           { code: 'USD', symbol: '$', name: 'دولار أمريكي' },
           { code: 'EUR', symbol: '€', name: 'يورو' },
           { code: 'GBP', symbol: '£', name: 'جنيه إسترليني' },

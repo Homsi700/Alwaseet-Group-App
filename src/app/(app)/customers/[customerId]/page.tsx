@@ -312,7 +312,7 @@ function CustomerDetailContent() {
                   <TableHead>رقم الفاتورة</TableHead>
                   <TableHead>التاريخ</TableHead>
                   <TableHead>النوع</TableHead>
-                  <TableHead className="text-right rtl:text-left">المبلغ (ر.س)</TableHead>
+                  <TableHead className="text-right rtl:text-left">المبلغ (ل.س)</TableHead>
                   <TableHead>الحالة</TableHead>
                   <TableHead className="text-center">الإجراءات</TableHead>
                 </TableRow>

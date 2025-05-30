@@ -51,7 +51,7 @@ export default function InventoryPage() {
                   <TableHead>الفئة</TableHead>
                   <TableHead className="text-center">الكمية الحالية</TableHead>
                   <TableHead>الوحدة</TableHead>
-                  <TableHead className="text-right rtl:text-left">قيمة المخزون (ر.س)</TableHead>
+                  <TableHead className="text-right rtl:text-left">قيمة المخزون (ل.س)</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

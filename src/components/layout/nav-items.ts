@@ -13,7 +13,8 @@ import {
   BarChartBig,
   Settings,
   DatabaseBackup,
-  Briefcase, 
+  Briefcase,
+  LineChart,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -34,6 +35,7 @@ export const navItems: NavItem[] = [
   { title: 'المنتجات', href: '/products', icon: Package, description: 'إدارة كتالوج منتجاتك، المخزون، والأسعار.' },
   { title: 'الحركات المالية', href: '/transactions', icon: History, description: 'عرض وتصفية جميع سجلات الحركات المالية.' },
   { title: 'المبيعات', href: '/sales', icon: TrendingUp, description: 'تتبع وإدارة طلبات البيع، الفواتير، ومدفوعات العملاء.' },
+  { title: 'نظرة عامة على المبيعات', href: '/sales-overview', icon: LineChart, description: 'تحليلات وإحصائيات المبيعات ومؤشرات الأداء.' },
   { title: 'المشتريات', href: '/purchases', icon: ShoppingBag, description: 'إدارة أوامر الشراء، الفواتير، ومدفوعات الموردين.' },
   { title: 'المخزون', href: '/inventory', icon: Archive, description: 'الإشراف على مستويات المخزون، الحركات، وتقييم المخزون.' },
   { title: 'العملاء', href: '/customers', icon: Users, description: 'الحفاظ على قاعدة بيانات عملائك وتتبع التفاعلات.' },
