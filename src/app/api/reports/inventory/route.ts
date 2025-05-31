@@ -1,171 +1,146 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { executeQuery } from '@/lib/db';
+
+// تعريف نوع البيانات لتقرير المخزون العام
+interface InventoryReport {
+  summary: {
+    totalItems: number;
+    totalQuantity: number;
+    totalValue: number;
+    lowStock: number;
+    outOfStock: number;
+  };
+  categories: {
+    categoryId: number;
+    name: string;
+    count: number;
+    quantity: number;
+    value: number;
+  }[];
+  lowStockItems: {
+    id: string;
+    name: string;
+    sku: string;
+    quantity: number;
+    minQuantity: number;
+    category: string;
+  }[];
+  topItems: {
+    id: string;
+    name: string;
+    sku: string;
+    quantity: number;
+    category: string;
+    value: number;
+  }[];
+}
 
 // الحصول على تقرير المخزون
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session) {
-      return NextResponse.json({ error: 'غير مصرح لك بالوصول' }, { status: 401 });
-    }
-    
     const { searchParams } = new URL(req.url);
     const categoryId = searchParams.get('categoryId');
     
-    // تحديد فلتر الفئة
-    const filter: any = {
-      userId: session.user.id,
-    };
+    const companyId = 1; // في المستقبل، يمكن الحصول على هذه القيمة من جلسة المستخدم
     
+    console.log('[reports/inventory/route.ts] Received GET request for general inventory report');
+    
+    // بناء الاستعلامات مع مراعاة فلتر الفئة
+    const params: Record<string, any> = { companyId };
+    
+    let categoryFilter = '';
     if (categoryId) {
-      filter.categoryId = categoryId;
+      categoryFilter = ' AND p.CategoryId = @categoryId';
+      params.categoryId = parseInt(categoryId);
     }
     
-    // الحصول على ملخص المخزون
-    const inventorySummary = await prisma.product.aggregate({
-      where: filter,
-      _sum: {
-        quantity: true,
-      },
-      _count: {
-        id: true,
-      },
-    });
+    // استعلام لحساب ملخص المخزون
+    const summaryQuery = `
+      SELECT 
+        COUNT(p.ProductId) as totalItems,
+        SUM(p.Quantity) as totalQuantity,
+        SUM(p.Quantity * p.PurchasePrice) as totalValue,
+        SUM(CASE WHEN p.Quantity > 0 AND p.Quantity <= p.MinimumQuantity THEN 1 ELSE 0 END) as lowStock,
+        SUM(CASE WHEN p.Quantity <= 0 THEN 1 ELSE 0 END) as outOfStock
+      FROM inventory.Products p
+      WHERE p.CompanyId = @companyId AND p.IsActive = 1${categoryFilter}
+    `;
     
-    // حساب قيمة المخزون
-    const products = await prisma.product.findMany({
-      where: filter,
-      select: {
-        id: true,
-        quantity: true,
-        cost: true,
-      },
-    });
+    // استعلام لحساب المخزون حسب الفئة
+    const categoriesQuery = `
+      SELECT 
+        c.CategoryId as categoryId,
+        c.Name as name,
+        COUNT(p.ProductId) as count,
+        SUM(p.Quantity) as quantity,
+        SUM(p.Quantity * p.PurchasePrice) as value
+      FROM inventory.Categories c
+      LEFT JOIN inventory.Products p ON c.CategoryId = p.CategoryId
+      WHERE c.CompanyId = @companyId AND c.IsActive = 1 AND p.IsActive = 1${categoryFilter}
+      GROUP BY c.CategoryId, c.Name
+      HAVING COUNT(p.ProductId) > 0
+      ORDER BY SUM(p.Quantity * p.PurchasePrice) DESC
+    `;
     
-    const totalValue = products.reduce((sum, product) => {
-      return sum + (product.quantity * (product.cost || 0));
-    }, 0);
+    // استعلام للحصول على المنتجات منخفضة المخزون
+    const lowStockQuery = `
+      SELECT 
+        'prod_' + CAST(p.ProductId AS NVARCHAR) as id,
+        p.Name as name,
+        p.Barcode as sku,
+        p.Quantity as quantity,
+        p.MinimumQuantity as minQuantity,
+        c.Name as category
+      FROM inventory.Products p
+      LEFT JOIN inventory.Categories c ON p.CategoryId = c.CategoryId
+      WHERE p.CompanyId = @companyId AND p.IsActive = 1
+        AND p.Quantity > 0 AND p.Quantity <= p.MinimumQuantity${categoryFilter}
+      ORDER BY p.Quantity ASC
+    `;
     
-    // الحصول على المنتجات منخفضة المخزون
-    const lowStockProducts = await prisma.product.findMany({
-      where: {
-        ...filter,
-        quantity: {
-          lt: prisma.product.fields.minQuantity,
-        },
-      },
-      include: {
-        category: true,
-      },
-      orderBy: {
-        quantity: 'asc',
-      },
-    });
+    // استعلام للحصول على المنتجات الأعلى قيمة
+    const topItemsQuery = `
+      SELECT TOP 10
+        'prod_' + CAST(p.ProductId AS NVARCHAR) as id,
+        p.Name as name,
+        p.Barcode as sku,
+        p.Quantity as quantity,
+        c.Name as category,
+        p.Quantity * p.PurchasePrice as value
+      FROM inventory.Products p
+      LEFT JOIN inventory.Categories c ON p.CategoryId = c.CategoryId
+      WHERE p.CompanyId = @companyId AND p.IsActive = 1${categoryFilter}
+      ORDER BY p.Quantity * p.PurchasePrice DESC, p.Quantity DESC
+    `;
     
-    // الحصول على المنتجات التي نفذت كميتها
-    const outOfStockProducts = await prisma.product.findMany({
-      where: {
-        ...filter,
-        quantity: 0,
-      },
-      include: {
-        category: true,
-      },
-    });
+    console.log('[reports/inventory/route.ts] Executing SQL queries for general inventory report');
     
-    // الحصول على المخزون حسب الفئة
-    const inventoryByCategory = await prisma.product.groupBy({
-      by: ['categoryId'],
-      where: filter,
-      _sum: {
-        quantity: true,
-      },
-      _count: {
-        id: true,
-      },
-    });
+    // تنفيذ الاستعلامات
+    const [summaryResult, categories, lowStockItems, topItems] = await Promise.all([
+      executeQuery(summaryQuery, params),
+      executeQuery(categoriesQuery, params),
+      executeQuery(lowStockQuery, params),
+      executeQuery(topItemsQuery, params)
+    ]);
     
-    // الحصول على تفاصيل الفئات
-    const categoryIds = inventoryByCategory
-      .map(item => item.categoryId)
-      .filter(Boolean) as string[];
+    const summary = summaryResult[0] || {
+      totalItems: 0,
+      totalQuantity: 0,
+      totalValue: 0,
+      lowStock: 0,
+      outOfStock: 0
+    };
     
-    const categories = categoryIds.length > 0 ? await prisma.category.findMany({
-      where: {
-        id: {
-          in: categoryIds,
-        },
-      },
-    }) : [];
+    console.log(`[reports/inventory/route.ts] Report generated with ${summary.totalItems} products`);
     
-    // دمج بيانات الفئات مع المخزون
-    const inventoryByCategoryWithDetails = inventoryByCategory.map(item => {
-      const category = item.categoryId ? categories.find(c => c.id === item.categoryId) : null;
-      
-      // حساب قيمة المخزون لهذه الفئة
-      const categoryProducts = products.filter(p => p.id === item.categoryId);
-      const categoryValue = categoryProducts.reduce((sum, product) => {
-        return sum + (product.quantity * (product.cost || 0));
-      }, 0);
-      
-      return {
-        categoryId: item.categoryId,
-        name: category?.name || 'بدون فئة',
-        count: item._count.id,
-        quantity: item._sum.quantity || 0,
-        value: categoryValue,
-      };
-    });
+    const report: InventoryReport = {
+      summary,
+      categories,
+      lowStockItems,
+      topItems
+    };
     
-    // الحصول على المنتجات الأعلى قيمة
-    const topValueProducts = await prisma.product.findMany({
-      where: filter,
-      orderBy: [
-        {
-          quantity: 'desc',
-        },
-        {
-          cost: 'desc',
-        },
-      ],
-      include: {
-        category: true,
-      },
-      take: 10,
-    });
-    
-    // تحويل المنتجات الأعلى قيمة إلى التنسيق المطلوب
-    const topValueProductsFormatted = topValueProducts.map(product => ({
-      id: product.id,
-      name: product.name,
-      sku: product.sku || '',
-      quantity: product.quantity,
-      category: product.category?.name || 'بدون فئة',
-      value: product.quantity * (product.cost || 0),
-    }));
-    
-    return NextResponse.json({
-      summary: {
-        totalItems: inventorySummary._count.id || 0,
-        totalQuantity: inventorySummary._sum.quantity || 0,
-        totalValue: totalValue,
-        lowStock: lowStockProducts.length,
-        outOfStock: outOfStockProducts.length,
-      },
-      categories: inventoryByCategoryWithDetails,
-      lowStockItems: lowStockProducts.map(product => ({
-        id: product.id,
-        name: product.name,
-        sku: product.sku || '',
-        quantity: product.quantity,
-        minQuantity: product.minQuantity,
-        category: product.category?.name || 'بدون فئة',
-      })),
-      topItems: topValueProductsFormatted,
-    });
+    return NextResponse.json(report);
   } catch (error) {
     console.error('خطأ في الحصول على تقرير المخزون:', error);
     return NextResponse.json({ error: 'حدث خطأ أثناء الحصول على تقرير المخزون' }, { status: 500 });
