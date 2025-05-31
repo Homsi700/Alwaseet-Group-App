@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const searchTerm = searchParams.get('searchTerm') || '';
-    const companyId = 1; // في المستقبل، يمكن الحصول على هذه القيمة من جلسة المستخدم
+    const companyId = 1; // قيمة ثابتة مؤقتاً
     
     console.log("[customers/route.ts] Received GET request for customers");
     console.log("[customers/route.ts] Search term:", searchTerm);
@@ -80,8 +80,8 @@ export async function POST(req: NextRequest) {
     
     // إدخال العميل الجديد في قاعدة البيانات
     try {
-      const companyId = 1; // في المستقبل، يمكن الحصول على هذه القيمة من جلسة المستخدم
-      const createdBy = 1; // في المستقبل، يمكن الحصول على هذه القيمة من جلسة المستخدم
+      const companyId = 1; // قيمة ثابتة مؤقتاً
+      const createdBy = 1; // قيمة ثابتة مؤقتاً
       
       const insertQuery = `
         INSERT INTO sales.Customers (

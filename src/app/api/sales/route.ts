@@ -1,26 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { executeQuery, executeTransaction } from '@/lib/db';
-import { getUserFromRequest } from '@/lib/auth';
 
 // الحصول على قائمة المبيعات
 export async function GET(req: NextRequest) {
   try {
-    const user = getUserFromRequest(req);
-    
-    if (!user) {
-      return NextResponse.json({ error: 'غير مصرح لك بالوصول' }, { status: 401 });
-    }
-    
     const { searchParams } = new URL(req.url);
     const searchTerm = searchParams.get('searchTerm') || '';
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     const status = searchParams.get('status');
     const customerId = searchParams.get('customerId');
+    const userId = 1; // قيمة ثابتة مؤقتاً
     
     // بناء شروط البحث
     const where: any = {
-      userId: user.userId,
+      userId,
     };
     
     // إضافة شرط البحث بالنص
@@ -82,7 +76,7 @@ export async function GET(req: NextRequest) {
     `;
     
     // إضافة شروط البحث إلى الاستعلام
-    const queryParams: any = { userId: user.userId };
+    const queryParams: any = { userId };
     
     if (searchTerm) {
       sqlQuery += ` AND (
@@ -193,11 +187,7 @@ export async function GET(req: NextRequest) {
 // إنشاء مبيعة جديدة
 export async function POST(req: NextRequest) {
   try {
-    const user = getUserFromRequest(req);
-    
-    if (!user) {
-      return NextResponse.json({ error: 'غير مصرح لك بالوصول' }, { status: 401 });
-    }
+    const userId = 1; // قيمة ثابتة مؤقتاً
     
     const data = await req.json();
     
@@ -265,7 +255,7 @@ export async function POST(req: NextRequest) {
       status: data.status || 'COMPLETED',
       paymentMethod: data.paymentMethod || 'CASH',
       customerId: data.customerId,
-      userId: user.userId
+      userId: userId
     };
     
     // إعداد قائمة الاستعلامات للمعاملة
