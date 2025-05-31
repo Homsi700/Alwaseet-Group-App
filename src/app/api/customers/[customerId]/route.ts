@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { executeQuery } from '@/lib/db';
+import type { Customer } from '@/types';
 
 // الحصول على عميل محدد
 export async function GET(
@@ -9,35 +8,65 @@ export async function GET(
   { params }: { params: { customerId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session) {
-      return NextResponse.json({ error: 'غير مصرح لك بالوصول' }, { status: 401 });
-    }
-    
     const customerId = params.customerId;
+    const companyId = 1; // في المستقبل، يمكن الحصول على هذه القيمة من جلسة المستخدم
     
-    // التحقق من وجود العميل
-    const customer = await prisma.customer.findUnique({
-      where: {
-        id: customerId,
-        userId: session.user.id,
-      },
-      include: {
-        sales: {
-          orderBy: {
-            date: 'desc',
-          },
-          take: 10,
-        },
-      },
-    });
+    console.log(`[customers/[customerId]/route.ts] Received GET request for customer ID: ${customerId}`);
     
-    if (!customer) {
+    // استعلام للحصول على بيانات العميل
+    const customerQuery = `
+      SELECT 
+        CustomerId as customerId,
+        Name as name,
+        ContactPerson as contactPerson,
+        PhoneNumber as phoneNumber,
+        Email as email,
+        Address as address,
+        TaxNumber as taxNumber,
+        CreditLimit as creditLimit,
+        Balance as balance,
+        CompanyId as companyId,
+        CreatedAt as createdAt,
+        UpdatedAt as updatedAt,
+        CreatedBy as createdBy,
+        IsActive as isActive
+      FROM sales.Customers
+      WHERE CustomerId = @customerId AND CompanyId = @companyId AND IsActive = 1
+    `;
+    
+    const customers = await executeQuery<Customer[]>(customerQuery, { customerId, companyId });
+    
+    if (!customers || customers.length === 0) {
+      console.log(`[customers/[customerId]/route.ts] Customer not found: ${customerId}`);
       return NextResponse.json({ error: 'العميل غير موجود' }, { status: 404 });
     }
     
-    return NextResponse.json(customer);
+    const customer = customers[0];
+    
+    // استعلام للحصول على آخر 10 مبيعات للعميل
+    const salesQuery = `
+      SELECT TOP 10
+        i.InvoiceId as invoiceId,
+        i.InvoiceNumber as invoiceNumber,
+        i.InvoiceDate as invoiceDate,
+        i.TotalAmount as totalAmount,
+        i.Status as status
+      FROM sales.Invoices i
+      WHERE i.CustomerId = @customerId AND i.CompanyId = @companyId
+      ORDER BY i.InvoiceDate DESC
+    `;
+    
+    const sales = await executeQuery<any[]>(salesQuery, { customerId, companyId });
+    
+    // إضافة المبيعات إلى بيانات العميل
+    const customerWithSales = {
+      ...customer,
+      sales: sales || []
+    };
+    
+    console.log(`[customers/[customerId]/route.ts] Customer fetched successfully with ${sales.length} recent sales`);
+    
+    return NextResponse.json(customerWithSales);
   } catch (error) {
     console.error('خطأ في الحصول على العميل:', error);
     return NextResponse.json({ error: 'حدث خطأ أثناء الحصول على العميل' }, { status: 500 });
@@ -50,41 +79,79 @@ export async function PUT(
   { params }: { params: { customerId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session) {
-      return NextResponse.json({ error: 'غير مصرح لك بالوصول' }, { status: 401 });
-    }
-    
     const customerId = params.customerId;
+    const companyId = 1; // في المستقبل، يمكن الحصول على هذه القيمة من جلسة المستخدم
     const data = await req.json();
     
-    // التحقق من وجود العميل
-    const existingCustomer = await prisma.customer.findUnique({
-      where: {
-        id: customerId,
-        userId: session.user.id,
-      },
-    });
+    console.log(`[customers/[customerId]/route.ts] Received PUT request for customer ID: ${customerId}`);
+    console.log(`[customers/[customerId]/route.ts] Update data:`, data);
     
-    if (!existingCustomer) {
+    // التحقق من وجود العميل
+    const checkQuery = `
+      SELECT CustomerId
+      FROM sales.Customers
+      WHERE CustomerId = @customerId AND CompanyId = @companyId AND IsActive = 1
+    `;
+    
+    const existingCustomers = await executeQuery<any[]>(checkQuery, { customerId, companyId });
+    
+    if (!existingCustomers || existingCustomers.length === 0) {
+      console.log(`[customers/[customerId]/route.ts] Customer not found: ${customerId}`);
       return NextResponse.json({ error: 'العميل غير موجود' }, { status: 404 });
     }
     
-    // تحديث العميل
-    const updatedCustomer = await prisma.customer.update({
-      where: {
-        id: customerId,
-      },
-      data: {
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
-        address: data.address,
-        vatNumber: data.vatNumber,
-        notes: data.notes,
-      },
+    // تحديث بيانات العميل
+    const updateQuery = `
+      UPDATE sales.Customers
+      SET 
+        Name = @name,
+        ContactPerson = @contactPerson,
+        PhoneNumber = @phoneNumber,
+        Email = @email,
+        Address = @address,
+        TaxNumber = @taxNumber,
+        CreditLimit = @creditLimit,
+        UpdatedAt = GETDATE()
+      WHERE CustomerId = @customerId AND CompanyId = @companyId;
+      
+      SELECT 
+        CustomerId as customerId,
+        Name as name,
+        ContactPerson as contactPerson,
+        PhoneNumber as phoneNumber,
+        Email as email,
+        Address as address,
+        TaxNumber as taxNumber,
+        CreditLimit as creditLimit,
+        Balance as balance,
+        CompanyId as companyId,
+        CreatedAt as createdAt,
+        UpdatedAt as updatedAt,
+        CreatedBy as createdBy,
+        IsActive as isActive
+      FROM sales.Customers
+      WHERE CustomerId = @customerId AND CompanyId = @companyId AND IsActive = 1
+    `;
+    
+    const updatedCustomers = await executeQuery<Customer[]>(updateQuery, {
+      customerId,
+      companyId,
+      name: data.name,
+      contactPerson: data.contactPerson || null,
+      phoneNumber: data.phoneNumber || data.phone || null,
+      email: data.email || null,
+      address: data.address || null,
+      taxNumber: data.taxNumber || data.vatNumber || null,
+      creditLimit: data.creditLimit || 0
     });
+    
+    if (!updatedCustomers || updatedCustomers.length === 0) {
+      console.log(`[customers/[customerId]/route.ts] Failed to update customer: ${customerId}`);
+      return NextResponse.json({ error: 'فشل في تحديث العميل' }, { status: 500 });
+    }
+    
+    const updatedCustomer = updatedCustomers[0];
+    console.log(`[customers/[customerId]/route.ts] Customer updated successfully: ${customerId}`);
     
     return NextResponse.json(updatedCustomer);
   } catch (error) {
@@ -99,40 +166,50 @@ export async function DELETE(
   { params }: { params: { customerId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session) {
-      return NextResponse.json({ error: 'غير مصرح لك بالوصول' }, { status: 401 });
-    }
-    
     const customerId = params.customerId;
+    const companyId = 1; // في المستقبل، يمكن الحصول على هذه القيمة من جلسة المستخدم
+    
+    console.log(`[customers/[customerId]/route.ts] Received DELETE request for customer ID: ${customerId}`);
     
     // التحقق من وجود العميل
-    const existingCustomer = await prisma.customer.findUnique({
-      where: {
-        id: customerId,
-        userId: session.user.id,
-      },
-      include: {
-        sales: true,
-      },
-    });
+    const checkQuery = `
+      SELECT CustomerId
+      FROM sales.Customers
+      WHERE CustomerId = @customerId AND CompanyId = @companyId AND IsActive = 1
+    `;
     
-    if (!existingCustomer) {
+    const existingCustomers = await executeQuery<any[]>(checkQuery, { customerId, companyId });
+    
+    if (!existingCustomers || existingCustomers.length === 0) {
+      console.log(`[customers/[customerId]/route.ts] Customer not found: ${customerId}`);
       return NextResponse.json({ error: 'العميل غير موجود' }, { status: 404 });
     }
     
     // التحقق من عدم وجود مبيعات مرتبطة بالعميل
-    if (existingCustomer.sales.length > 0) {
+    const salesCheckQuery = `
+      SELECT COUNT(*) as salesCount
+      FROM sales.Invoices
+      WHERE CustomerId = @customerId AND CompanyId = @companyId
+    `;
+    
+    const salesCheck = await executeQuery<any[]>(salesCheckQuery, { customerId, companyId });
+    const salesCount = salesCheck[0]?.salesCount || 0;
+    
+    if (salesCount > 0) {
+      console.log(`[customers/[customerId]/route.ts] Cannot delete customer with sales: ${customerId}, sales count: ${salesCount}`);
       return NextResponse.json({ error: 'لا يمكن حذف العميل لأنه مرتبط بمبيعات' }, { status: 400 });
     }
     
-    // حذف العميل
-    await prisma.customer.delete({
-      where: {
-        id: customerId,
-      },
-    });
+    // حذف العميل (تحديث حالة النشاط بدلاً من الحذف الفعلي)
+    const deleteQuery = `
+      UPDATE sales.Customers
+      SET IsActive = 0, UpdatedAt = GETDATE()
+      WHERE CustomerId = @customerId AND CompanyId = @companyId
+    `;
+    
+    await executeQuery(deleteQuery, { customerId, companyId });
+    
+    console.log(`[customers/[customerId]/route.ts] Customer deleted (deactivated) successfully: ${customerId}`);
     
     return NextResponse.json({ message: 'تم حذف العميل بنجاح' });
   } catch (error) {

@@ -76,7 +76,32 @@ export function useSales(filters?: {
         throw new Error('فشل في الحصول على المبيعات');
       }
       
-      return response.json();
+      const sales = await response.json();
+      
+      // حساب الإحصائيات
+      const totalSales = sales.reduce((sum: number, sale: Sale) => sum + (sale.total || 0), 0);
+      const totalInvoices = sales.length;
+      const averageInvoiceValue = totalInvoices > 0 ? totalSales / totalInvoices : 0;
+      
+      // تصنيف المبيعات حسب الحالة
+      const completedSales = sales.filter((sale: Sale) => sale.status === 'COMPLETED').length;
+      const pendingSales = sales.filter((sale: Sale) => sale.status === 'PENDING').length;
+      const cancelledSales = sales.filter((sale: Sale) => sale.status === 'CANCELLED').length;
+      const refundedSales = sales.filter((sale: Sale) => sale.status === 'REFUNDED').length;
+      
+      // إرجاع البيانات مع الإحصائيات
+      return {
+        sales,
+        summary: {
+          totalSales,
+          totalInvoices,
+          averageInvoiceValue,
+          completedSales,
+          pendingSales,
+          cancelledSales,
+          refundedSales
+        }
+      };
     },
   });
 }

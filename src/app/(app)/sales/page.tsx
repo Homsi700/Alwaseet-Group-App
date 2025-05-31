@@ -287,46 +287,28 @@ function SalesContent() {
   
   const { toast } = useToast();
   
-  // استخدام hooks للمبيعات (محاكاة)
-  // في الواقع، سنستخدم useSales hook، لكن هنا سنستخدم البيانات الوهمية
-  const isLoading = false;
-  const isError = false;
-  const error = null;
-  
-  // تصفية المبيعات
-  const filteredSales = mockSales.filter(sale => {
-    // تصفية حسب البحث
-    const matchesSearch = searchTerm === '' || 
-      sale.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      sale.customer?.name.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    // تصفية حسب الحالة
-    const matchesStatus = selectedStatus === 'all' || sale.status === selectedStatus;
-    
-    // تصفية حسب التاريخ
-    const saleDate = new Date(sale.date);
-    const matchesDateRange = 
-      (!selectedDateRange.from || saleDate >= selectedDateRange.from) && 
-      (!selectedDateRange.to || saleDate <= selectedDateRange.to);
-    
-    return matchesSearch && matchesStatus && matchesDateRange;
+  // استخدام hooks للمبيعات
+  const { data, isLoading, isError, error, refetch } = useSales({
+    searchTerm: searchTerm,
+    startDate: selectedDateRange.from,
+    endDate: selectedDateRange.to,
+    status: selectedStatus !== 'all' ? selectedStatus.toUpperCase() : undefined
   });
   
+  // تحضير المبيعات للعرض
+  const filteredSales = data?.sales || [];
+  
   // حذف مبيعة
+  const deleteSaleMutation = useDeleteSale();
+  
   const handleDeleteSale = async () => {
     if (!selectedSaleId) return;
     
     try {
-      // في الواقع، سنستخدم deleteSaleMutation.mutateAsync
-      // لكن هنا سنحاكي العملية
-      
-      toast({
-        title: 'تم حذف المبيعة بنجاح',
-        variant: 'default',
-      });
-      
+      await deleteSaleMutation.mutateAsync(selectedSaleId);
       setIsDeleteDialogOpen(false);
       setSelectedSaleId(null);
+      refetch();
     } catch (error) {
       console.error('خطأ في حذف المبيعة:', error);
     }
@@ -343,9 +325,9 @@ function SalesContent() {
   }));
   
   // إحصائيات المبيعات
-  const totalSales = filteredSales.reduce((sum, sale) => sum + sale.total, 0);
-  const completedSales = filteredSales.filter(sale => sale.status === 'COMPLETED').length;
-  const pendingSales = filteredSales.filter(sale => sale.status === 'PENDING').length;
+  const totalSales = data?.summary?.totalSales || 0;
+  const completedSales = data?.summary?.completedSales || 0;
+  const pendingSales = data?.summary?.pendingSales || 0;
   
   return (
     <div className="space-y-6">

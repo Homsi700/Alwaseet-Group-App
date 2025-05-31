@@ -160,7 +160,30 @@ export async function GET(req: NextRequest) {
     
     const sales = salesWithItems;
     
-    return NextResponse.json(sales);
+    // حساب الإحصائيات
+    const totalSales = sales.reduce((sum, sale) => sum + (sale.total || 0), 0);
+    const totalInvoices = sales.length;
+    const averageInvoiceValue = totalInvoices > 0 ? totalSales / totalInvoices : 0;
+    
+    // تصنيف المبيعات حسب الحالة
+    const completedSales = sales.filter(sale => sale.status === 'COMPLETED').length;
+    const pendingSales = sales.filter(sale => sale.status === 'PENDING').length;
+    const cancelledSales = sales.filter(sale => sale.status === 'CANCELLED').length;
+    const refundedSales = sales.filter(sale => sale.status === 'REFUNDED').length;
+    
+    // إرجاع البيانات مع الإحصائيات
+    return NextResponse.json({
+      sales,
+      summary: {
+        totalSales,
+        totalInvoices,
+        averageInvoiceValue,
+        completedSales,
+        pendingSales,
+        cancelledSales,
+        refundedSales
+      }
+    });
   } catch (error) {
     console.error('خطأ في الحصول على المبيعات:', error);
     return NextResponse.json({ error: 'حدث خطأ أثناء الحصول على المبيعات' }, { status: 500 });
